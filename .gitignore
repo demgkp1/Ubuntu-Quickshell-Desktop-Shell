@@ -1,0 +1,11 @@
+# Reference upstream repos
+reference/
+
+# Build artifacts
+build/
+*.qmlc
+*.jsc
+.cache/
+
+# User local configs
+*.local
