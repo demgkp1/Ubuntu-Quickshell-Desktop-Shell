@@ -23,15 +23,16 @@ timeline
 
 ## 详细阶段计划
 
-### Phase 0 — 环境审查、架构确立与最小 PoC (当前阶段)
+### Phase 0 — 环境审查、架构确立与最小 PoC (已完成)
 - [x] Ubuntu 24.04 LTS (GNOME 46 + Wayland) 本机环境诊断与记录
 - [x] Quickshell / Qt 6 依赖状态确认
 - [x] 参考项目 `StatIndet/quickshell` 深度源码剖析
 - [x] 输出 `docs/PORTABILITY_MATRIX.md` (可移植性矩阵)
 - [x] 输出 `docs/ARCHITECTURE.md` (架构规范与分层设计)
 - [x] 确立本项目目录规范与 Git 版本库初始化
-- [ ] **实施验证**：安装 Quickshell 运行时环境
-- [ ] **实施验证**：启动最小 PanelWindow Demo (在当前 GNOME 会话正常呈现时钟与基本卡片)
+- [x] **实施验证**：通过独立 Nix Flakes 环境建立无污染、可复现的 Quickshell 运行时
+- [x] **实施验证**：启动最小 FloatingWindow PoC 并成功在当前 GNOME 46 Wayland 会话中渲染呈现
+
 
 ---
 
