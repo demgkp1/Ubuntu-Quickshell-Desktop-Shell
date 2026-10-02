@@ -13,11 +13,12 @@ ShellRoot {
     TopBarWindow {
         id: barWindow
 
-        // Minimal prototype container - strictly follows non-complex UI constraint
+        // TopBar Prototype Capsule Layout
         Row {
+            id: barLayout
             spacing: Theme.sizes.spacingSm
 
-            // Brand / Status Indicator Pill
+            // 1. Brand / System Pill
             Pill {
                 borderColor: Theme.colors.primary
 
@@ -30,7 +31,7 @@ ShellRoot {
                 }
 
                 Text {
-                    text: "Ubuntu Shell"
+                    text: "Ubuntu"
                     color: Theme.colors.text
                     font.family: Theme.typography.familySans
                     font.pixelSize: Theme.typography.sizeBody
@@ -39,16 +40,17 @@ ShellRoot {
                 }
             }
 
-            // Synchronized Time Pill
-            Pill {
-                Text {
-                    text: TimeService.formattedTime
-                    color: Theme.colors.textSecondary
-                    font.family: Theme.typography.familySans
-                    font.pixelSize: Theme.typography.sizeBody
-                    font.weight: Theme.typography.weightNormal
-                    anchors.verticalCenter: parent.verticalCenter
-                }
+            // 2. Real-time Clock Pill (Powered by TimeService)
+            ClockPill {
+                showDate: true
+                showSeconds: false
+            }
+
+            // 3. Status Pill (Mock system-independent indicators)
+            StatusPill {
+                networkText: "Wi-Fi"
+                volumePercent: 75
+                batteryPercent: 88
             }
         }
     }
