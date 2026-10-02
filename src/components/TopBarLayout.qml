@@ -19,7 +19,7 @@ Item {
     property alias trailing: trailingRow.data
 
     property int paddingHorizontal: Theme.sizes.spacingLg
-    property int topMargin: 4
+    property int topMargin: 3
 
     implicitHeight: Theme.sizes.topBarHeight
 

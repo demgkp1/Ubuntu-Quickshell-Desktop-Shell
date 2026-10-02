@@ -5,6 +5,7 @@
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
 
 import "theme"
 import "windows"
@@ -12,6 +13,22 @@ import "components"
 import "services"
 
 ShellRoot {
+    // IPC bridge for global keyboard shortcuts and external automation
+    IpcHandler {
+        target: "shell"
+
+        function toggleLauncher() {
+            LauncherService.toggle();
+        }
+
+        function toggleControlCenter() {
+            ControlCenterService.toggle();
+        }
+
+        function openOverview() {
+            GnomeService.toggleOverview();
+        }
+    }
     // 1. TopBar Window for each connected screen
     Variants {
         model: Quickshell.screens
@@ -57,7 +74,7 @@ ShellRoot {
                         }
 
                         onClicked: {
-                            GnomeService.toggleOverview();
+                            ControlCenterService.toggle();
                         }
                     }
                 ]
@@ -70,6 +87,16 @@ ShellRoot {
         model: Quickshell.screens
 
         LauncherWindow {
+            required property var modelData
+            targetScreen: modelData
+        }
+    }
+
+    // 3. Floating Quick Settings & Control Center Window
+    Variants {
+        model: Quickshell.screens
+
+        ControlCenterWindow {
             required property var modelData
             targetScreen: modelData
         }

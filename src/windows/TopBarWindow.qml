@@ -24,8 +24,8 @@ PanelWindow {
         right: true
     }
 
-    exclusiveZone: Theme.sizes.topBarHeight + 4
-    implicitHeight: Theme.sizes.topBarHeight + 4
+    exclusiveZone: Theme.sizes.topBarHeight
+    implicitHeight: Theme.sizes.topBarHeight
 
     default property alias content: contentContainer.data
 

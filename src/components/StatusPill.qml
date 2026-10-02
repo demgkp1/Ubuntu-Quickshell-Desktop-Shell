@@ -10,10 +10,18 @@ import "../services"
  * - AudioService (Volume / Mute via PipeWire)
  * - PowerService (Battery / AC mains via UPower)
  *
- * Fully reactive with zero polling overhead.
+ * Left click toggles the ControlCenterWindow quick settings.
+ * Wheel scroll on volume adjusts volume.
  */
 Pill {
     id: root
+
+    baseColor: ControlCenterService.isOpen ? Theme.colors.glassBackgroundActive : Theme.colors.glassBackground
+    borderColor: ControlCenterService.isOpen ? Theme.colors.primary : Theme.colors.glassBorder
+
+    onClicked: {
+        ControlCenterService.toggle();
+    }
 
     // 1. Network indicator
     Row {
@@ -83,7 +91,7 @@ Pill {
             }
         }
 
-        // Click to toggle mute
+        // Click on volume text directly toggles mute
         MouseArea {
             anchors.fill: parent
             cursorShape: Qt.PointingHandCursor

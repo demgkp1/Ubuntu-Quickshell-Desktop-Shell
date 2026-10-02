@@ -26,13 +26,13 @@ Singleton {
     readonly property int radiusCard: 16
     readonly property int radiusPill: 9999
 
-    // Bar & Capsule Dimensions
-    readonly property int topBarHeight: 44
-    readonly property int topBarFloatingMarginTop: 8
-    readonly property int pillHeight: 32
-    readonly property int pillPaddingHorizontal: 12
-    readonly property int pillPaddingVertical: 6
-    readonly property int pillSpacing: 8
+    // Bar & Capsule Dimensions (Calibrated to Ubuntu GNOME 32px standard)
+    readonly property int topBarHeight: 32
+    readonly property int topBarFloatingMarginTop: 3
+    readonly property int pillHeight: 26
+    readonly property int pillPaddingHorizontal: 10
+    readonly property int pillPaddingVertical: 3
+    readonly property int pillSpacing: 6
 
     // Icons
     readonly property int iconSizeSm: 14

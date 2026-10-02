@@ -17,11 +17,11 @@ Singleton {
     readonly property int weightBold: Font.Bold
 
     // Font Sizes
-    readonly property int sizeCaption: 11
-    readonly property int sizeBodySmall: 12
-    readonly property int sizeBody: 13
+    readonly property int sizeCaption: 10
+    readonly property int sizeBodySmall: 11
+    readonly property int sizeBody: 12
     readonly property int sizeBodyLarge: 14
     readonly property int sizeTitleSmall: 16
     readonly property int sizeTitle: 18
-    readonly property int sizeDisplay: 24
+    readonly property int sizeDisplay: 22
 }
