@@ -58,11 +58,7 @@ ShellRoot {
 
                 // 3. Trailing Section (Pinned Right: Hardware Status + Quick Power)
                 trailing: [
-                    StatusPill {
-                        networkText: "Wi-Fi"
-                        volumePercent: 75
-                        batteryPercent: 88
-                    },
+                    StatusPill {},
 
                     Pill {
                         paddingHorizontal: 12

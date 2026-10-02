@@ -1,21 +1,23 @@
 import QtQuick
 import "../theme"
+import "../services"
 
 /**
  * StatusPill - Frosted System Status Indicator
  *
- * Built upon the frosted glass Pill. Displays system indicators
- * in soft sage and vibrant mint accents.
+ * Connected directly to real Linux system services:
+ * - NetworkService (Ethernet / Wi-Fi via NetworkManager)
+ * - AudioService (Volume / Mute via PipeWire)
+ * - PowerService (Battery / AC mains via UPower)
+ *
+ * Fully reactive with zero polling overhead.
  */
 Pill {
     id: root
 
-    property string networkText: "Wi-Fi"
-    property int volumePercent: 72
-    property int batteryPercent: 90
-
     // 1. Network indicator
     Row {
+        id: networkRow
         spacing: Theme.sizes.spacingXs
         anchors.verticalCenter: parent.verticalCenter
 
@@ -23,20 +25,24 @@ Pill {
             width: 6
             height: 6
             radius: 3
-            color: Theme.colors.primary
+            color: NetworkService.isConnected ? Theme.colors.primary : Theme.colors.textTertiary
             anchors.verticalCenter: parent.verticalCenter
+
+            Behavior on color {
+                ColorAnimation { duration: Theme.animations.fast }
+            }
         }
 
         Text {
-            text: root.networkText
-            color: Theme.colors.textSecondary
+            text: NetworkService.statusText
+            color: NetworkService.isConnected ? Theme.colors.textSecondary : Theme.colors.textTertiary
             font.family: Theme.typography.familySans
             font.pixelSize: Theme.typography.sizeBodySmall
             anchors.verticalCenter: parent.verticalCenter
         }
     }
 
-    // Divider
+    // Divider: Network -> Volume
     Rectangle {
         width: 1
         height: 12
@@ -45,29 +51,60 @@ Pill {
     }
 
     // 2. Volume indicator
-    Row {
-        spacing: Theme.sizes.spacingXs
+    Item {
+        id: volumeContainer
+        implicitWidth: volumeText.implicitWidth
+        implicitHeight: volumeText.implicitHeight
         anchors.verticalCenter: parent.verticalCenter
 
         Text {
-            text: "VOL " + root.volumePercent + "%"
-            color: Theme.colors.textSecondary
+            id: volumeText
+            anchors.centerIn: parent
+            text: AudioService.isMuted
+                ? "MUTED"
+                : ("VOL " + AudioService.volumePercent + "%")
+            color: AudioService.isMuted
+                ? Theme.colors.textTertiary
+                : Theme.colors.textSecondary
             font.family: Theme.typography.familySans
             font.pixelSize: Theme.typography.sizeBodySmall
-            anchors.verticalCenter: parent.verticalCenter
+            font.weight: AudioService.isMuted ? Theme.typography.weightNormal : Theme.typography.weightMedium
+        }
+
+        // Wheel handler for adjusting volume with mouse scroll
+        WheelHandler {
+            target: volumeContainer
+            onWheel: event => {
+                if (event.angleDelta.y > 0) {
+                    AudioService.stepVolume(0.05);
+                } else if (event.angleDelta.y < 0) {
+                    AudioService.stepVolume(-0.05);
+                }
+            }
+        }
+
+        // Click to toggle mute
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: AudioService.toggleMute()
         }
     }
 
-    // Divider
+    // Divider: Volume -> Battery (only shown if battery exists)
     Rectangle {
-        width: 1
+        id: batteryDivider
+        visible: PowerService.hasBattery
+        width: visible ? 1 : 0
         height: 12
         color: Theme.colors.glassBorder
         anchors.verticalCenter: parent.verticalCenter
     }
 
-    // 3. Battery capsule indicator
+    // 3. Battery capsule indicator (only shown if battery exists)
     Row {
+        id: batteryRow
+        visible: PowerService.hasBattery
         spacing: Theme.sizes.spacingXs
         anchors.verticalCenter: parent.verticalCenter
 
@@ -77,7 +114,7 @@ Pill {
             height: 10
             radius: 3
             color: "transparent"
-            border.color: Theme.colors.primary
+            border.color: PowerService.isCharging ? Theme.colors.accent : Theme.colors.primary
             border.width: 1
             anchors.verticalCenter: parent.verticalCenter
 
@@ -87,14 +124,18 @@ Pill {
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
                 anchors.margins: 1.5
-                width: Math.max(2, (parent.width - 3) * (root.batteryPercent / 100))
+                width: Math.max(2, (parent.width - 3) * (PowerService.percentage / 100))
                 radius: 1.5
-                color: Theme.colors.primary
+                color: PowerService.isCharging ? Theme.colors.accent : Theme.colors.primary
+
+                Behavior on width {
+                    NumberAnimation { duration: Theme.animations.normal }
+                }
             }
         }
 
         Text {
-            text: root.batteryPercent + "%"
+            text: PowerService.percentInt + "%"
             color: Theme.colors.text
             font.family: Theme.typography.familySans
             font.pixelSize: Theme.typography.sizeBodySmall

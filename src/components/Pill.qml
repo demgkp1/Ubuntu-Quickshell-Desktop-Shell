@@ -68,24 +68,23 @@ Item {
         Behavior on border.color {
             ColorAnimation {
                 duration: Theme.animations.fast
-                easing.type: Theme.animations.easeOut
             }
-        }
-
-        // Inner Content Container
-        Row {
-            id: contentLayout
-            anchors.centerIn: parent
-            spacing: Theme.sizes.spacingSm
         }
     }
 
-    // 3. Mouse Interaction Area
+    // 3. Mouse Interaction Area (Pill background hover & click)
     MouseArea {
         id: mouseArea
         anchors.fill: parent
         hoverEnabled: root.hoverEnabled
         cursorShape: root.hoverEnabled ? Qt.PointingHandCursor : Qt.ArrowCursor
         onClicked: root.clicked()
+    }
+
+    // 4. Inner Content Container (Rendered on top of background mouseArea)
+    Row {
+        id: contentLayout
+        anchors.centerIn: parent
+        spacing: Theme.sizes.spacingSm
     }
 }
