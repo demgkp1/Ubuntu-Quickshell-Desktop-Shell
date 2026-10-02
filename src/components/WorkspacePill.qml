@@ -49,7 +49,6 @@ Pill {
                 MouseArea {
                     anchors.fill: parent
                     anchors.margins: -4
-                    cursorShape: Qt.ArrowCursor
                     onClicked: {
                         root.activeWorkspaceIndex = index;
                     }

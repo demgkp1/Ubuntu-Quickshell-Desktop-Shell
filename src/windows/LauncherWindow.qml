@@ -51,7 +51,6 @@ PanelWindow {
     // Fullscreen backdrop: clicking outside card dismisses launcher
     MouseArea {
         anchors.fill: parent
-        cursorShape: Qt.ArrowCursor
         onClicked: LauncherService.close()
     }
 
@@ -68,7 +67,6 @@ PanelWindow {
         // Prevent clicks inside card from bubbling to backdrop
         MouseArea {
             anchors.fill: parent
-            cursorShape: Qt.ArrowCursor
         }
 
         // 1. Ambient Drop Shadow
@@ -219,7 +217,6 @@ PanelWindow {
                         id: overviewMouse
                         anchors.fill: parent
                         hoverEnabled: true
-                        cursorShape: Qt.ArrowCursor
                         onClicked: {
                             LauncherService.close();
                             GnomeService.toggleOverview();
@@ -253,7 +250,6 @@ PanelWindow {
                         id: termMouse
                         anchors.fill: parent
                         hoverEnabled: true
-                        cursorShape: Qt.ArrowCursor
                         onClicked: {
                             LauncherService.close();
                             GnomeService.toggleOverview(); // quick launcher fallback
@@ -345,7 +341,6 @@ PanelWindow {
                         id: itemMouse
                         anchors.fill: parent
                         hoverEnabled: true
-                        cursorShape: Qt.ArrowCursor
                         onClicked: {
                             modelData.execute();
                             LauncherService.close();
