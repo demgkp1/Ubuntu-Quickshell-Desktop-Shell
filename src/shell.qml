@@ -4,29 +4,51 @@
 import QtQuick
 import Quickshell
 
+import "theme"
+import "windows"
+import "components"
+import "services"
+
 ShellRoot {
-    FloatingWindow {
-        id: root
-        title: "Ubuntu Shell PoC"
-        visible: true
-        color: "#1E1E2E"
+    TopBarWindow {
+        id: barWindow
 
-        implicitWidth: 360
-        implicitHeight: 60
+        // Minimal prototype container - strictly follows non-complex UI constraint
+        Row {
+            spacing: Theme.sizes.spacingSm
 
-        Rectangle {
-            anchors.fill: parent
-            radius: 12
-            color: "#1E1E2E"
-            border.color: "#A6E3A1"
-            border.width: 2
+            // Brand / Status Indicator Pill
+            Pill {
+                borderColor: Theme.colors.primary
 
-            Text {
-                anchors.centerIn: parent
-                text: "Ubuntu Shell PoC (Nix + GNOME)"
-                color: "#CDD6F4"
-                font.pixelSize: 14
-                font.bold: true
+                Rectangle {
+                    width: 8
+                    height: 8
+                    radius: 4
+                    color: Theme.colors.primary
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                Text {
+                    text: "Ubuntu Shell"
+                    color: Theme.colors.text
+                    font.family: Theme.typography.familySans
+                    font.pixelSize: Theme.typography.sizeBody
+                    font.weight: Theme.typography.weightDemiBold
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+
+            // Synchronized Time Pill
+            Pill {
+                Text {
+                    text: TimeService.formattedTime
+                    color: Theme.colors.textSecondary
+                    font.family: Theme.typography.familySans
+                    font.pixelSize: Theme.typography.sizeBody
+                    font.weight: Theme.typography.weightNormal
+                    anchors.verticalCenter: parent.verticalCenter
+                }
             }
         }
     }
