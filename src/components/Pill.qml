@@ -2,27 +2,23 @@ import QtQuick
 import "../theme"
 
 /**
- * Pill - Atomic Capsule Surface Component
+ * Pill - Frosted Glass Capsule Component
  *
- * Provides a standardized rounded capsule container with theme-driven
- * background colors, subtle borders, and smooth hover feedback.
+ * Implements a modern frosted glass aesthetic with translucent backing,
+ * a delicate mint glass rim, soft ambient elevation shadow, and smooth
+ * hover illumination.
  */
-Rectangle {
+Item {
     id: root
 
-    // Theme bindings
-    color: isHovered && hoverEnabled ? hoverColor : baseColor
-    border.color: isHovered && hoverEnabled ? borderHoverColor : borderColor
-    border.width: 1
-    radius: Theme.sizes.radiusPill
-
-    property color baseColor: Theme.colors.base
-    property color hoverColor: Theme.colors.surface0
-    property color borderColor: Theme.colors.borderSubtle
-    property color borderHoverColor: Theme.colors.surface1
+    property color baseColor: Theme.colors.glassBackground
+    property color hoverColor: Theme.colors.glassBackgroundHover
+    property color borderColor: Theme.colors.glassBorder
+    property color borderHoverColor: Theme.colors.glassBorderHover
 
     property int paddingHorizontal: Theme.sizes.pillPaddingHorizontal
     property int paddingVertical: Theme.sizes.pillPaddingVertical
+    property int radius: Theme.sizes.radiusPill
 
     property bool hoverEnabled: true
     readonly property bool isHovered: mouseArea.containsMouse
@@ -34,26 +30,57 @@ Rectangle {
 
     default property alias content: contentLayout.data
 
-    Behavior on color {
-        ColorAnimation {
-            duration: Theme.animations.fast
-            easing.type: Theme.animations.easeOut
+    // 1. Ambient Drop Shadow (elevation layer)
+    Rectangle {
+        id: shadowLayer
+        anchors.fill: surface
+        anchors.topMargin: 2
+        anchors.bottomMargin: -2
+        radius: root.radius
+        color: Theme.colors.glassShadow
+        opacity: root.isHovered ? 0.6 : 0.4
+        z: -1
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Theme.animations.fast
+                easing.type: Theme.animations.easeOut
+            }
         }
     }
 
-    Behavior on border.color {
-        ColorAnimation {
-            duration: Theme.animations.fast
-            easing.type: Theme.animations.easeOut
+    // 2. Frosted Glass Surface
+    Rectangle {
+        id: surface
+        anchors.fill: parent
+        radius: root.radius
+        color: root.isHovered && root.hoverEnabled ? root.hoverColor : root.baseColor
+        border.color: root.isHovered && root.hoverEnabled ? root.borderHoverColor : root.borderColor
+        border.width: 1
+
+        Behavior on color {
+            ColorAnimation {
+                duration: Theme.animations.fast
+                easing.type: Theme.animations.easeOut
+            }
+        }
+
+        Behavior on border.color {
+            ColorAnimation {
+                duration: Theme.animations.fast
+                easing.type: Theme.animations.easeOut
+            }
+        }
+
+        // Inner Content Container
+        Row {
+            id: contentLayout
+            anchors.centerIn: parent
+            spacing: Theme.sizes.spacingSm
         }
     }
 
-    Row {
-        id: contentLayout
-        anchors.centerIn: parent
-        spacing: Theme.sizes.spacingSm
-    }
-
+    // 3. Mouse Interaction Area
     MouseArea {
         id: mouseArea
         anchors.fill: parent

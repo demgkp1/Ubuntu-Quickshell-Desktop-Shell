@@ -5,8 +5,8 @@ import "../services"
 /**
  * ClockPill - Real-time Clock and Date Indicator
  *
- * Built upon the foundational Pill component. Displays synchronized
- * time and date from TimeService, formatted with Theme tokens.
+ * Built upon the frosted glass Pill. Displays synchronized time in
+ * luminous mint/cyan accent, paired with soft sage secondary date info.
  */
 Pill {
     id: root
@@ -42,15 +42,16 @@ Pill {
         anchors.verticalCenter: parent.verticalCenter
     }
 
+    // Glowing luminous time
     Text {
         id: timeLabel
         text: root.showSeconds 
               ? TimeService.formattedTime + ":" + TimeService.formattedSeconds 
               : TimeService.formattedTime
-        color: Theme.colors.text
+        color: Theme.colors.primary
         font.family: Theme.typography.familySans
-        font.pixelSize: Theme.typography.sizeBody
-        font.weight: Theme.typography.weightMedium
+        font.pixelSize: Theme.typography.sizeBodyLarge
+        font.weight: Theme.typography.weightBold
         anchors.verticalCenter: parent.verticalCenter
     }
 }

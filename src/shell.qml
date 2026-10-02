@@ -13,19 +13,22 @@ ShellRoot {
     TopBarWindow {
         id: barWindow
 
-        // TopBar Prototype Capsule Layout
+        // TopBar Floating Capsule Row
         Row {
             id: barLayout
             spacing: Theme.sizes.spacingSm
 
-            // 1. Brand / System Pill
-            Pill {
-                borderColor: Theme.colors.primary
+            // 1. Workspaces Pill (Clavis style 3-indicator switcher)
+            WorkspacePill {
+                id: workspacePill
+            }
 
+            // 2. Brand / System Pill (Frosted Mint Glass)
+            Pill {
                 Rectangle {
-                    width: 8
-                    height: 8
-                    radius: 4
+                    width: 7
+                    height: 7
+                    radius: 3.5
                     color: Theme.colors.primary
                     anchors.verticalCenter: parent.verticalCenter
                 }
@@ -40,17 +43,30 @@ ShellRoot {
                 }
             }
 
-            // 2. Real-time Clock Pill (Powered by TimeService)
+            // 3. Central Luminous Clock Pill (Powered by TimeService)
             ClockPill {
                 showDate: true
                 showSeconds: false
             }
 
-            // 3. Status Pill (Mock system-independent indicators)
+            // 4. Hardware Status Pill (Wi-Fi, Vol, Battery visual fill)
             StatusPill {
                 networkText: "Wi-Fi"
                 volumePercent: 75
                 batteryPercent: 88
+            }
+
+            // 5. Quick Power Pill (Coral red accent from screenshot)
+            Pill {
+                paddingHorizontal: 12
+
+                Rectangle {
+                    width: 8
+                    height: 8
+                    radius: 4
+                    color: Theme.colors.error
+                    anchors.verticalCenter: parent.verticalCenter
+                }
             }
         }
     }
