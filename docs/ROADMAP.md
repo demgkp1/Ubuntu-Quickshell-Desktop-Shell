@@ -36,16 +36,17 @@ timeline
 
 ---
 
-### Phase 1 — Shell 基础 (TopBar 核心系统)
-**目标**：在屏幕顶部呈现出稳定、美观的 Material 3 风格胶囊状态栏。
-- 基础视觉体系落地：`Appearance.qml`, `Sizes.qml`, `Animations.qml`, `Typography.qml`
-- 基础组件封装：`TopBarPill.qml`, `IconLabel.qml`
-- 顶层容器：`Bar.qml`, `HorizontalBarWindow.qml`
-- 时钟胶囊：时间、日期与悬停日历提示
-- 状态胶囊组：PipeWire 音量指示、网络连接状态、电池电量指示
-- 平台后端初版：
-  - `WorkspaceService`：GNOME 工作区切换与指示器
-  - `WindowService`：活动窗口标题与应用图标呈现
+### Phase 1 — Shell 基础 (TopBar 核心系统 - 进行中)
+**目标**：在屏幕顶部呈现出稳定、美观的 Matugen Sage & Mint 毛玻璃风格胶囊状态栏。
+- [x] 基础视觉体系落地：`Colors.qml`, `Sizes.qml`, `Animations.qml`, `Typography.qml`, `Theme.qml` (完全对齐 Clavis 参考质感与毛玻璃规范)
+- [x] 核心胶囊组件封装：`Pill.qml` (带环境阴影与微光玻璃边缘), `ClockPill.qml`, `WorkspacePill.qml`, `StatusPill.qml`
+- [x] 顶层容器抽象：`TopBarWindow.qml` (基于 FloatingWindow 的无边框兼容适配器)
+- [ ] TopBar 布局精细化：左侧工作区/品牌、中央悬浮时钟、右侧状态组的屏幕顶部定位与多屏幕适配
+- [ ] 真实系统数据接入初版 (逐步替代 mock)：
+  - 基础系统时间/时区/本地化完善
+  - 真实工作区联动 (GNOME D-Bus / EWMH)
+  - 系统监控指标 (Linux /proc 原生采集)
+
 
 ---
 
@@ -89,12 +90,17 @@ timeline
 
 ---
 
-### Phase 6 — 动态主题与个性化 (Theme & Dynamic Color)
-**目标**：基于 Material Design 3 的色彩衍生与统一视觉定制。
-- 集成 Matugen 调色算法，根据壁纸主色提取全套语义化配色令牌
-- 深色 (Dark) / 浅色 (Light) 模式一键平滑渐变切换
-- 全局主色调 (Primary / Accent) 自定义调整
-- 壁纸管理服务与背景层联动
+### Phase 6 — 个性化设置中心与动态主题 (Settings & Personalization)
+**目标**：提供如同参考截图中居中展示的 Settings 面板，让用户自由定制壁纸、显示效果与主题风格。
+- **Settings 控制中心界面**：
+  - 壁纸选择与实时预览 (Wallpaper Selector & Live Preview)
+  - 界面半透明度与毛玻璃模糊度动态微调 (Translucency / Glass Blur Level)
+  - 顶栏布局方式与胶囊显隐定制 (TopBar Layout Customization)
+- **动态色彩联动**：
+  - 集成 Matugen 算法，依据用户选中的壁纸自动提取 Sage & Mint 等和谐调色板
+  - 深色 (Dark) / 浅色 (Light) 模式一键平滑渐变切换
+  - 允许用户手动覆盖主色调 (Primary / Accent) 与高光强度
+
 
 ---
 
