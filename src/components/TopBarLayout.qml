@@ -5,9 +5,11 @@ import "../theme"
  * TopBarLayout - 3-Section Split Layout (Leading / Center / Trailing)
  *
  * Implements standard desktop shell 3-section layout:
- * - Leading: Anchored to the left (Workspaces, active app)
- * - Center: Floating at the absolute horizontal center (Clock & date)
- * - Trailing: Anchored to the right (Status indicators, quick toggles, power)
+ * - Leading: Anchored to the left with safety margin
+ * - Center: Floating at the absolute horizontal center
+ * - Trailing: Anchored to the right with safety margin
+ *
+ * Top-aligned to ensure minimal vertical offset.
  */
 Item {
     id: root
@@ -17,6 +19,7 @@ Item {
     property alias trailing: trailingRow.data
 
     property int paddingHorizontal: Theme.sizes.spacingLg
+    property int topMargin: 4
 
     implicitHeight: Theme.sizes.topBarHeight
 
@@ -25,14 +28,17 @@ Item {
         id: leadingRow
         anchors.left: parent.left
         anchors.leftMargin: root.paddingHorizontal
-        anchors.verticalCenter: parent.verticalCenter
+        anchors.top: parent.top
+        anchors.topMargin: root.topMargin
         spacing: Theme.sizes.spacingSm
     }
 
     // 2. Center Section (Screen Center)
     Item {
         id: centerSlot
-        anchors.centerIn: parent
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+        anchors.topMargin: root.topMargin
         implicitWidth: childrenRect.width
         implicitHeight: childrenRect.height
     }
@@ -42,7 +48,8 @@ Item {
         id: trailingRow
         anchors.right: parent.right
         anchors.rightMargin: root.paddingHorizontal
-        anchors.verticalCenter: parent.verticalCenter
+        anchors.top: parent.top
+        anchors.topMargin: root.topMargin
         spacing: Theme.sizes.spacingSm
     }
 }

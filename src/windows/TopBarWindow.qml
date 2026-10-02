@@ -5,13 +5,8 @@ import "../theme"
 /**
  * TopBarWindow - Window Host Adapter
  *
- * Current Strategy:
- * Uses Quickshell's FloatingWindow (xdg-shell) spanning the screen width
- * to provide a three-section edge-to-edge floating capsule bar on GNOME Mutter.
- *
- * Future Portability:
- * Decoupled from TopBarLayout. When migrating to layer-shell compositors,
- * this adapter can simply be replaced with PanelWindow.
+ * Automatically binds to the assigned screen's geometry (width & height),
+ * ensuring responsive adaptation on any computer / resolution (1080p, 2K, 4K, ultrawide).
  */
 FloatingWindow {
     id: root
@@ -20,12 +15,12 @@ FloatingWindow {
     visible: true
     color: "transparent"
 
-    property var targetScreen: Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+    required property var targetScreen
     screen: targetScreen
 
-    // Automatically spans the display width
+    // Automatically spans 100% of this specific monitor's width
     implicitWidth: targetScreen ? targetScreen.width : 1920
-    implicitHeight: Theme.sizes.topBarHeight + Theme.sizes.spacingSm
+    implicitHeight: Theme.sizes.topBarHeight
 
     default property alias content: contentContainer.data
 

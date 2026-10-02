@@ -11,64 +11,71 @@ import "components"
 import "services"
 
 ShellRoot {
-    TopBarWindow {
-        id: barWindow
+    // Automatically creates a responsive TopBar instance for every connected monitor
+    Variants {
+        model: Quickshell.screens
 
-        TopBarLayout {
-            anchors.fill: parent
+        TopBarWindow {
+            id: barWindow
+            required property var modelData
+            targetScreen: modelData
 
-            // 1. Leading Section (Pinned to the Left)
-            leading: [
-                WorkspacePill {
-                    id: workspacePill
-                },
+            TopBarLayout {
+                anchors.fill: parent
 
-                Pill {
-                    Rectangle {
-                        width: 7
-                        height: 7
-                        radius: 3.5
-                        color: Theme.colors.primary
-                        anchors.verticalCenter: parent.verticalCenter
+                // 1. Leading Section (Pinned Left: Workspaces + Brand)
+                leading: [
+                    WorkspacePill {
+                        id: workspacePill
+                    },
+
+                    Pill {
+                        Rectangle {
+                            width: 7
+                            height: 7
+                            radius: 3.5
+                            color: Theme.colors.primary
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+
+                        Text {
+                            text: "Ubuntu"
+                            color: Theme.colors.text
+                            font.family: Theme.typography.familySans
+                            font.pixelSize: Theme.typography.sizeBody
+                            font.weight: Theme.typography.weightDemiBold
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
                     }
+                ]
 
-                    Text {
-                        text: "Ubuntu"
-                        color: Theme.colors.text
-                        font.family: Theme.typography.familySans
-                        font.pixelSize: Theme.typography.sizeBody
-                        font.weight: Theme.typography.weightDemiBold
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
+                // 2. Center Section (Floating Luminous Clock)
+                center: ClockPill {
+                    showDate: true
+                    showSeconds: false
                 }
-            ]
 
-            // 2. Center Section (Floating at the Horizontal Center)
-            center: ClockPill {
-                showDate: true
-                showSeconds: false
+                // 3. Trailing Section (Pinned Right: Hardware Status + Quick Power)
+                trailing: [
+                    StatusPill {
+                        networkText: "Wi-Fi"
+                        volumePercent: 75
+                        batteryPercent: 88
+                    },
+
+                    Pill {
+                        paddingHorizontal: 12
+
+                        Rectangle {
+                            width: 8
+                            height: 8
+                            radius: 4
+                            color: Theme.colors.error
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+                ]
             }
-
-            // 3. Trailing Section (Pinned to the Right)
-            trailing: [
-                StatusPill {
-                    networkText: "Wi-Fi"
-                    volumePercent: 75
-                    batteryPercent: 88
-                },
-
-                Pill {
-                    paddingHorizontal: 12
-
-                    Rectangle {
-                        width: 8
-                        height: 8
-                        radius: 4
-                        color: Theme.colors.error
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                }
-            ]
         }
     }
 }
