@@ -6,14 +6,12 @@ import "../theme"
  * TopBarWindow - Window Host Adapter
  *
  * Current Strategy:
- * Uses Quickshell's FloatingWindow (xdg-shell) to ensure full compatibility
- * with Ubuntu 24.04 GNOME Mutter (which lacks zwlr_layer_shell_v1).
+ * Uses Quickshell's FloatingWindow (xdg-shell) spanning the screen width
+ * to provide a three-section edge-to-edge floating capsule bar on GNOME Mutter.
  *
  * Future Portability:
- * The UI content is completely decoupled from the window frame. When targeting
- * compositors that support layer-shell (e.g., Niri, Hyprland, Sway), this window
- * host can be transitioned to PanelWindow with anchors and exclusiveZone, with zero
- * modifications required to components or services.
+ * Decoupled from TopBarLayout. When migrating to layer-shell compositors,
+ * this adapter can simply be replaced with PanelWindow.
  */
 FloatingWindow {
     id: root
@@ -22,15 +20,17 @@ FloatingWindow {
     visible: true
     color: "transparent"
 
-    default property alias content: contentContainer.data
+    property var targetScreen: Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+    screen: targetScreen
 
-    implicitWidth: contentContainer.implicitWidth
-    implicitHeight: contentContainer.implicitHeight
+    // Automatically spans the display width
+    implicitWidth: targetScreen ? targetScreen.width : 1920
+    implicitHeight: Theme.sizes.topBarHeight + Theme.sizes.spacingSm
+
+    default property alias content: contentContainer.data
 
     Item {
         id: contentContainer
         anchors.fill: parent
-        implicitWidth: childrenRect.width
-        implicitHeight: childrenRect.height
     }
 }

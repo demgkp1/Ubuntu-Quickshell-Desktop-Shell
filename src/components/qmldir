@@ -2,3 +2,4 @@ Pill 1.0 Pill.qml
 ClockPill 1.0 ClockPill.qml
 StatusPill 1.0 StatusPill.qml
 WorkspacePill 1.0 WorkspacePill.qml
+TopBarLayout 1.0 TopBarLayout.qml
