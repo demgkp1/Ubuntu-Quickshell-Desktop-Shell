@@ -24,6 +24,7 @@ Item {
     readonly property bool isHovered: mouseArea.containsMouse
 
     signal clicked()
+    signal rightClicked()
 
     implicitHeight: Theme.sizes.pillHeight
     implicitWidth: contentLayout.implicitWidth + (paddingHorizontal * 2)
@@ -77,8 +78,15 @@ Item {
         id: mouseArea
         anchors.fill: parent
         hoverEnabled: root.hoverEnabled
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: root.hoverEnabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-        onClicked: root.clicked()
+        onClicked: mouse => {
+            if (mouse.button === Qt.RightButton) {
+                root.rightClicked();
+            } else {
+                root.clicked();
+            }
+        }
     }
 
     // 4. Inner Content Container (Rendered on top of background mouseArea)

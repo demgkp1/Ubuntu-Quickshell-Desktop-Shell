@@ -12,7 +12,7 @@ import "components"
 import "services"
 
 ShellRoot {
-    // Automatically creates an adapted TopBar instance for every connected monitor
+    // 1. TopBar Window for each connected screen
     Variants {
         model: Quickshell.screens
 
@@ -24,39 +24,24 @@ ShellRoot {
             TopBarLayout {
                 anchors.fill: parent
 
-                // 1. Leading Section (Pinned Left: Workspaces + Brand)
+                // Leading: Workspaces + Application Launcher Trigger
                 leading: [
                     WorkspacePill {
                         id: workspacePill
                     },
 
-                    Pill {
-                        Rectangle {
-                            width: 7
-                            height: 7
-                            radius: 3.5
-                            color: Theme.colors.primary
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-
-                        Text {
-                            text: "Ubuntu"
-                            color: Theme.colors.text
-                            font.family: Theme.typography.familySans
-                            font.pixelSize: Theme.typography.sizeBody
-                            font.weight: Theme.typography.weightDemiBold
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
+                    LauncherPill {
+                        id: launcherPill
                     }
                 ]
 
-                // 2. Center Section (Floating Luminous Clock)
+                // Center: Floating Luminous Clock
                 center: ClockPill {
                     showDate: true
                     showSeconds: false
                 }
 
-                // 3. Trailing Section (Pinned Right: Hardware Status + Quick Power)
+                // Trailing: Hardware Status + Power Quick Action
                 trailing: [
                     StatusPill {},
 
@@ -70,9 +55,23 @@ ShellRoot {
                             color: Theme.colors.error
                             anchors.verticalCenter: parent.verticalCenter
                         }
+
+                        onClicked: {
+                            GnomeService.toggleOverview();
+                        }
                     }
                 ]
             }
+        }
+    }
+
+    // 2. Floating Application Launcher / Start Menu Window
+    Variants {
+        model: Quickshell.screens
+
+        LauncherWindow {
+            required property var modelData
+            targetScreen: modelData
         }
     }
 }

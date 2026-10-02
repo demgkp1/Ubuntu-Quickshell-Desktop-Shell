@@ -23,6 +23,7 @@ Singleton {
     readonly property int radiusMd: 12
     readonly property int radiusLg: 16
     readonly property int radiusXl: 20
+    readonly property int radiusCard: 16
     readonly property int radiusPill: 9999
 
     // Bar & Capsule Dimensions
