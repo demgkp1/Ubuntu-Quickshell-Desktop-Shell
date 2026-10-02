@@ -1,6 +1,11 @@
-Pill 1.0 Pill.qml
-ClockPill 1.0 ClockPill.qml
-StatusPill 1.0 StatusPill.qml
+MaterialSymbol 1.0 MaterialSymbol.qml
+MaterialSplitSlider 1.0 MaterialSplitSlider.qml
+QuickMaterialSlider 1.0 QuickMaterialSlider.qml
+QuickToggleButton 1.0 QuickToggleButton.qml
+QuickToggleGroup 1.0 QuickToggleGroup.qml
+TopBarPill 1.0 TopBarPill.qml
 WorkspacePill 1.0 WorkspacePill.qml
 LauncherPill 1.0 LauncherPill.qml
+ClockPill 1.0 ClockPill.qml
+StatusPill 1.0 StatusPill.qml
 TopBarLayout 1.0 TopBarLayout.qml

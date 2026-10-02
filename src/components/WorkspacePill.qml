@@ -1,14 +1,7 @@
 import QtQuick
-import "../theme"
+import "../common"
 
-/**
- * WorkspacePill - Mock / Independent Workspace Indicator
- *
- * Recreates the iconic 3-indicator workspace pill seen in Clavis:
- * Active workspace is an elongated mint capsule, while inactive workspaces
- * are subtle sage dots.
- */
-Pill {
+TopBarPill {
     id: root
 
     property int activeWorkspaceIndex: 0
@@ -24,34 +17,29 @@ Pill {
             delegate: Rectangle {
                 id: indicator
                 required property int index
-
                 readonly property bool isActive: index === root.activeWorkspaceIndex
 
                 width: isActive ? 22 : 6
                 height: 6
                 radius: 3
-                color: isActive ? Theme.colors.primary : (root.isHovered ? Theme.colors.textSecondary : Theme.colors.textMuted)
+                color: isActive ? Appearance.colors.colPrimary : (root.isHovered ? Appearance.colors.colOnSurfaceVariant : Appearance.colors.colOutlineVariant)
 
                 Behavior on width {
                     NumberAnimation {
-                        duration: Theme.animations.normal
-                        easing.type: Theme.animations.easeOut
+                        duration: 200
+                        easing.type: Easing.OutQuad
                     }
                 }
 
                 Behavior on color {
-                    ColorAnimation {
-                        duration: Theme.animations.fast
-                        easing.type: Theme.animations.easeOut
-                    }
+                    ColorAnimation { duration: 150 }
                 }
 
                 MouseArea {
                     anchors.fill: parent
                     anchors.margins: -4
-                    onClicked: {
-                        root.activeWorkspaceIndex = index;
-                    }
+                    cursorShape: Qt.ArrowCursor
+                    onClicked: root.activeWorkspaceIndex = index
                 }
             }
         }

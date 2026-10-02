@@ -1,21 +1,13 @@
 import QtQuick
 import Quickshell
-import "../theme"
+import "../common"
 
-/**
- * TopBarWindow - Window Host Adapter
- *
- * Implements native desktop dock reservation (Exclusive Zone / Struts).
- * - Anchors to the top, left, and right edges of the display.
- * - Sets exclusiveZone to ensure other windows (maximized or tiled)
- *   stop cleanly beneath the TopBar and NEVER overlap it.
- */
 PanelWindow {
     id: root
 
     color: "transparent"
 
-    required property var targetScreen
+    property var targetScreen: null
     screen: targetScreen
 
     anchors {
@@ -24,8 +16,8 @@ PanelWindow {
         right: true
     }
 
-    exclusiveZone: Theme.sizes.topBarHeight
-    implicitHeight: Theme.sizes.topBarHeight
+    exclusiveZone: 44
+    implicitHeight: 44
 
     default property alias content: contentContainer.data
 

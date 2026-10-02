@@ -1,0 +1,4 @@
+singleton Appearance 1.0 Appearance.qml
+singleton Fonts 1.0 Fonts.qml
+singleton Metrics 1.0 Metrics.qml
+singleton Animations 1.0 Animations.qml

@@ -7,7 +7,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-import "theme"
+import "common"
 import "windows"
 import "components"
 import "services"
@@ -52,47 +52,26 @@ ShellRoot {
         TopBarWindow {
             id: barWindow
             required property var modelData
-            targetScreen: modelData
+            screen: modelData
 
             TopBarLayout {
                 anchors.fill: parent
 
                 // Leading: Workspaces + Application Launcher Trigger
                 leading: [
-                    WorkspacePill {
-                        id: workspacePill
-                    },
-
-                    LauncherPill {
-                        id: launcherPill
-                    }
+                    WorkspacePill {},
+                    LauncherPill {}
                 ]
 
-                // Center: Floating Luminous Clock
+                // Center: Floating Luminous Clock (Clavis Style)
                 center: ClockPill {
-                    showDate: true
+                    showDate: false
                     showSeconds: false
                 }
 
-                // Trailing: Hardware Status + Power Quick Action
+                // Trailing: Hardware Status + Power Quick Action (Clavis Style)
                 trailing: [
-                    StatusPill {},
-
-                    Pill {
-                        paddingHorizontal: 12
-
-                        Rectangle {
-                            width: 8
-                            height: 8
-                            radius: 4
-                            color: Theme.colors.error
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-
-                        onClicked: {
-                            ControlCenterService.toggle();
-                        }
-                    }
+                    StatusPill {}
                 ]
             }
         }
@@ -104,17 +83,17 @@ ShellRoot {
 
         LauncherWindow {
             required property var modelData
-            targetScreen: modelData
+            screen: modelData
         }
     }
 
-    // 3. Floating Quick Settings & Control Center Window
+    // 3. Floating Quick Settings & Control Center Window (Clavis Style)
     Variants {
         model: Quickshell.screens
 
         ControlCenterWindow {
             required property var modelData
-            targetScreen: modelData
+            screen: modelData
         }
     }
 }

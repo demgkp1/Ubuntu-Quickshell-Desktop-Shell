@@ -1,16 +1,6 @@
 import QtQuick
-import "../theme"
+import "../common"
 
-/**
- * TopBarLayout - 3-Section Split Layout (Leading / Center / Trailing)
- *
- * Implements standard desktop shell 3-section layout:
- * - Leading: Anchored to the left with safety margin
- * - Center: Floating at the absolute horizontal center
- * - Trailing: Anchored to the right with safety margin
- *
- * Top-aligned to ensure minimal vertical offset.
- */
 Item {
     id: root
 
@@ -18,10 +8,10 @@ Item {
     property alias center: centerSlot.data
     property alias trailing: trailingRow.data
 
-    property int paddingHorizontal: Theme.sizes.spacingLg
-    property int topMargin: 3
+    property int paddingHorizontal: 16
+    property int topMargin: 4
 
-    implicitHeight: Theme.sizes.topBarHeight
+    implicitHeight: 44
 
     // 1. Leading Section (Left Pinned)
     Row {
@@ -30,7 +20,7 @@ Item {
         anchors.leftMargin: root.paddingHorizontal
         anchors.top: parent.top
         anchors.topMargin: root.topMargin
-        spacing: Theme.sizes.spacingSm
+        spacing: 8
     }
 
     // 2. Center Section (Screen Center)
@@ -50,6 +40,6 @@ Item {
         anchors.rightMargin: root.paddingHorizontal
         anchors.top: parent.top
         anchors.topMargin: root.topMargin
-        spacing: Theme.sizes.spacingSm
+        spacing: 8
     }
 }

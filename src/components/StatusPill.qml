@@ -1,152 +1,89 @@
 import QtQuick
-import "../theme"
+import "../common"
 import "../services"
 
-/**
- * StatusPill - Frosted System Status Indicator
- *
- * Connected directly to real Linux system services:
- * - NetworkService (Ethernet / Wi-Fi via NetworkManager)
- * - AudioService (Volume / Mute via PipeWire)
- * - PowerService (Battery / AC mains via UPower)
- *
- * Left click toggles the ControlCenterWindow quick settings.
- * Wheel scroll on volume adjusts volume.
- */
-Pill {
+TopBarPill {
     id: root
 
-    baseColor: ControlCenterService.isOpen ? Theme.colors.glassBackgroundActive : Theme.colors.glassBackground
-    borderColor: ControlCenterService.isOpen ? Theme.colors.primary : Theme.colors.glassBorder
+    baseColor: ControlCenterService.isOpen ? Appearance.colors.colLayer1Active : Appearance.colors.colLayer0
+    borderColor: ControlCenterService.isOpen ? Appearance.colors.colPrimary : Appearance.colors.colLayer0Border
 
     onClicked: {
         ControlCenterService.toggle();
     }
 
-    // 1. Network indicator
     Row {
-        id: networkRow
-        spacing: Theme.sizes.spacingXs
+        spacing: 10
         anchors.verticalCenter: parent.verticalCenter
 
+        // 1. Notification icon
+        MaterialSymbol {
+            text: "notifications"
+            iconSize: 16
+            color: Appearance.colors.colOnSurfaceVariant
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
+        // 2. Bluetooth icon
+        MaterialSymbol {
+            text: "bluetooth"
+            iconSize: 16
+            color: Appearance.colors.colOnSurfaceVariant
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
+        // 3. Wi-Fi icon
+        MaterialSymbol {
+            text: NetworkService.isConnected ? "wifi" : "wifi_off"
+            iconSize: 16
+            color: NetworkService.isConnected ? Appearance.colors.colPrimary : Appearance.colors.colOnSurfaceVariant
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
+        // Divider
         Rectangle {
-            width: 6
-            height: 6
-            radius: 3
-            color: NetworkService.isConnected ? Theme.colors.primary : Theme.colors.textTertiary
+            width: 1
+            height: 12
+            color: Qt.rgba(1, 1, 1, 0.12)
+            anchors.verticalCenter: parent.verticalCenter
+        }
+
+        // 4. Battery / Power Status
+        Row {
+            spacing: 4
             anchors.verticalCenter: parent.verticalCenter
 
-            Behavior on color {
-                ColorAnimation { duration: Theme.animations.fast }
+            MaterialSymbol {
+                text: PowerService.isCharging ? "battery_charging_full" : "battery_horiz_075"
+                iconSize: 18
+                color: PowerService.isCharging ? Appearance.colors.colPrimary : Appearance.colors.colOnSurface
+                anchors.verticalCenter: parent.verticalCenter
+            }
+
+            Text {
+                text: (PowerService.hasBattery ? PowerService.percentInt : 100) + "%"
+                color: Appearance.colors.colOnSurface
+                font.family: Fonts.numeric
+                font.pixelSize: 12
+                font.weight: Font.DemiBold
+                anchors.verticalCenter: parent.verticalCenter
             }
         }
 
-        Text {
-            text: NetworkService.statusText
-            color: NetworkService.isConnected ? Theme.colors.textSecondary : Theme.colors.textTertiary
-            font.family: Theme.typography.familySans
-            font.pixelSize: Theme.typography.sizeBodySmall
-            anchors.verticalCenter: parent.verticalCenter
-        }
-    }
-
-    // Divider: Network -> Volume
-    Rectangle {
-        width: 1
-        height: 12
-        color: Theme.colors.glassBorder
-        anchors.verticalCenter: parent.verticalCenter
-    }
-
-    // 2. Volume indicator
-    Item {
-        id: volumeContainer
-        implicitWidth: volumeText.implicitWidth
-        implicitHeight: volumeText.implicitHeight
-        anchors.verticalCenter: parent.verticalCenter
-
-        Text {
-            id: volumeText
-            anchors.centerIn: parent
-            text: AudioService.isMuted
-                ? "MUTED"
-                : ("VOL " + AudioService.volumePercent + "%")
-            color: AudioService.isMuted
-                ? Theme.colors.textTertiary
-                : Theme.colors.textSecondary
-            font.family: Theme.typography.familySans
-            font.pixelSize: Theme.typography.sizeBodySmall
-            font.weight: AudioService.isMuted ? Theme.typography.weightNormal : Theme.typography.weightMedium
-        }
-
-        // Wheel handler for adjusting volume with mouse scroll
-        WheelHandler {
-            target: volumeContainer
-            onWheel: event => {
-                if (event.angleDelta.y > 0) {
-                    AudioService.stepVolume(0.05);
-                } else if (event.angleDelta.y < 0) {
-                    AudioService.stepVolume(-0.05);
-                }
-            }
-        }
-
-        // Click on volume text directly toggles mute
-        MouseArea {
-            anchors.fill: parent
-            onClicked: AudioService.toggleMute()
-        }
-    }
-
-    // Divider: Volume -> Battery (only shown if battery exists)
-    Rectangle {
-        id: batteryDivider
-        visible: PowerService.hasBattery
-        width: visible ? 1 : 0
-        height: 12
-        color: Theme.colors.glassBorder
-        anchors.verticalCenter: parent.verticalCenter
-    }
-
-    // 3. Battery capsule indicator (only shown if battery exists)
-    Row {
-        id: batteryRow
-        visible: PowerService.hasBattery
-        spacing: Theme.sizes.spacingXs
-        anchors.verticalCenter: parent.verticalCenter
-
-        // Mini battery icon
+        // Divider
         Rectangle {
-            width: 18
-            height: 10
-            radius: 3
-            color: "transparent"
-            border.color: PowerService.isCharging ? Theme.colors.accent : Theme.colors.primary
-            border.width: 1
+            width: 1
+            height: 12
+            color: Qt.rgba(1, 1, 1, 0.12)
             anchors.verticalCenter: parent.verticalCenter
-
-            // Fill level
-            Rectangle {
-                anchors.left: parent.left
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                anchors.margins: 1.5
-                width: Math.max(2, (parent.width - 3) * (PowerService.percentage / 100))
-                radius: 1.5
-                color: PowerService.isCharging ? Theme.colors.accent : Theme.colors.primary
-
-                Behavior on width {
-                    NumberAnimation { duration: Theme.animations.normal }
-                }
-            }
         }
 
-        Text {
-            text: PowerService.percentInt + "%"
-            color: Theme.colors.text
-            font.family: Theme.typography.familySans
-            font.pixelSize: Theme.typography.sizeBodySmall
-            font.weight: Theme.typography.weightMedium
+        // 5. Power Button
+        MaterialSymbol {
+            text: "power_settings_new"
+            iconSize: 16
+            fill: 1
+            color: Appearance.colors.colError
             anchors.verticalCenter: parent.verticalCenter
         }
     }
