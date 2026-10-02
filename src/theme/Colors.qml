@@ -18,6 +18,7 @@ Singleton {
     readonly property color primary: "#72d5be"            // Bright luminous mint/cyan (Hero accent)
     readonly property color primaryHover: "#88e6d0"       // Hovered primary state
     readonly property color primaryActive: "#56c3b1"      // Pressed/active state
+    readonly property color accent: primary               // Accent alias for backward compatibility
     readonly property color textOnPrimary: "#00382e"          // Deep forest dark teal (High contrast text on primary)
     readonly property color primaryContainer: "#005143"   // Deep teal accent container
     readonly property color textOnPrimaryContainer: "#9df2dc" // Luminous text on container
