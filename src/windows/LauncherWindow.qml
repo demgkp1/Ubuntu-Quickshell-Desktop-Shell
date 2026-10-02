@@ -28,16 +28,17 @@ PanelWindow {
 
     anchors {
         top: true
+        bottom: true
         left: true
+        right: true
     }
 
-    margins {
-        top: Theme.sizes.topBarHeight + 6
-        left: Theme.sizes.spacingLg
+    // Global ESC shortcut
+    Shortcut {
+        sequence: "Escape"
+        enabled: root.visible
+        onActivated: LauncherService.close()
     }
-
-    implicitWidth: 380
-    implicitHeight: 520
 
     // Auto-focus search input when opened
     onVisibleChanged: {
@@ -47,25 +48,48 @@ PanelWindow {
         }
     }
 
-    // 1. Ambient Drop Shadow
-    Rectangle {
-        id: shadow
-        anchors.fill: surface
-        anchors.margins: -4
-        radius: Theme.sizes.radiusCard + 4
-        color: Theme.colors.glassShadow
-        opacity: 0.6
-        z: -1
+    // Fullscreen backdrop: clicking outside card dismisses launcher
+    MouseArea {
+        anchors.fill: parent
+        cursorShape: Qt.ArrowCursor
+        onClicked: LauncherService.close()
     }
 
-    // 2. Frosted Surface
-    Rectangle {
-        id: surface
-        anchors.fill: parent
-        radius: Theme.sizes.radiusCard
-        color: Qt.rgba(0.06, 0.12, 0.13, 0.92) // Frosted deep forest slate
-        border.color: Theme.colors.glassBorder
-        border.width: 1
+    // Start Menu Card Container
+    Item {
+        id: cardRoot
+        width: 380
+        height: 520
+        anchors.top: parent.top
+        anchors.topMargin: Theme.sizes.topBarHeight + 6
+        anchors.left: parent.left
+        anchors.leftMargin: Theme.sizes.spacingLg
+
+        // Prevent clicks inside card from bubbling to backdrop
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.ArrowCursor
+        }
+
+        // 1. Ambient Drop Shadow
+        Rectangle {
+            id: shadow
+            anchors.fill: surface
+            anchors.margins: -4
+            radius: Theme.sizes.radiusCard + 4
+            color: Theme.colors.glassShadow
+            opacity: 0.6
+            z: -1
+        }
+
+        // 2. Frosted Surface
+        Rectangle {
+            id: surface
+            anchors.fill: parent
+            radius: Theme.sizes.radiusCard
+            color: Qt.rgba(0.06, 0.12, 0.13, 0.92) // Frosted deep forest slate
+            border.color: Theme.colors.glassBorder
+            border.width: 1
 
         Column {
             anchors.fill: parent
@@ -195,7 +219,7 @@ PanelWindow {
                         id: overviewMouse
                         anchors.fill: parent
                         hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
+                        cursorShape: Qt.ArrowCursor
                         onClicked: {
                             LauncherService.close();
                             GnomeService.toggleOverview();
@@ -229,7 +253,7 @@ PanelWindow {
                         id: termMouse
                         anchors.fill: parent
                         hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
+                        cursorShape: Qt.ArrowCursor
                         onClicked: {
                             LauncherService.close();
                             GnomeService.toggleOverview(); // quick launcher fallback
@@ -321,7 +345,7 @@ PanelWindow {
                         id: itemMouse
                         anchors.fill: parent
                         hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
+                        cursorShape: Qt.ArrowCursor
                         onClicked: {
                             modelData.execute();
                             LauncherService.close();
@@ -355,4 +379,5 @@ PanelWindow {
             }
         }
     }
+}
 }

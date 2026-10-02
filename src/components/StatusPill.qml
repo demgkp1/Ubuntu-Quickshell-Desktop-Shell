@@ -94,7 +94,7 @@ Pill {
         // Click on volume text directly toggles mute
         MouseArea {
             anchors.fill: parent
-            cursorShape: Qt.PointingHandCursor
+            cursorShape: Qt.ArrowCursor
             onClicked: AudioService.toggleMute()
         }
     }
