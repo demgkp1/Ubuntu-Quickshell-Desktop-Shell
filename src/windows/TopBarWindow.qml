@@ -5,22 +5,27 @@ import "../theme"
 /**
  * TopBarWindow - Window Host Adapter
  *
- * Automatically binds to the assigned screen's geometry (width & height),
- * ensuring responsive adaptation on any computer / resolution (1080p, 2K, 4K, ultrawide).
+ * Implements native desktop dock reservation (Exclusive Zone / Struts).
+ * - Anchors to the top, left, and right edges of the display.
+ * - Sets exclusiveZone to ensure other windows (maximized or tiled)
+ *   stop cleanly beneath the TopBar and NEVER overlap it.
  */
-FloatingWindow {
+PanelWindow {
     id: root
 
-    title: "Ubuntu Desktop Shell - TopBar"
-    visible: true
     color: "transparent"
 
     required property var targetScreen
     screen: targetScreen
 
-    // Automatically spans 100% of this specific monitor's width
-    implicitWidth: targetScreen ? targetScreen.width : 1920
-    implicitHeight: Theme.sizes.topBarHeight
+    anchors {
+        top: true
+        left: true
+        right: true
+    }
+
+    exclusiveZone: Theme.sizes.topBarHeight + 4
+    implicitHeight: Theme.sizes.topBarHeight + 4
 
     default property alias content: contentContainer.data
 

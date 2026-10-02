@@ -1,6 +1,7 @@
 //@ pragma UseQApplication
 //@ pragma Env QT_WAYLAND_DISABLE_WINDOWDECORATION=1
 //@ pragma Env QT_QUICK_BACKEND=software
+//@ pragma Env QT_QPA_PLATFORM=xcb
 
 import QtQuick
 import Quickshell
@@ -11,7 +12,7 @@ import "components"
 import "services"
 
 ShellRoot {
-    // Automatically creates a responsive TopBar instance for every connected monitor
+    // Automatically creates an adapted TopBar instance for every connected monitor
     Variants {
         model: Quickshell.screens
 
