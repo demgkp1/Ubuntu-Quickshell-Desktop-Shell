@@ -7,10 +7,24 @@ Singleton {
 
     // User-configurable family defaults. Keep all family literals in this
     // singleton so components only depend on semantic roles.
-    readonly property string defaultUi: "LXGW WenKai GB Screen"
-    readonly property string defaultMono: "JetBrainsMono Nerd Font"
-    readonly property string defaultNumeric: root.defaultMono
     readonly property string bundledFamilyName: bundledFont.name || "Google Sans Flex"
+    readonly property string defaultUi: root.familyAvailable("LXGW WenKai GB Screen")
+                                         ? "LXGW WenKai GB Screen"
+                                         : (root.familyAvailable(root.bundledFamilyName)
+                                            ? root.bundledFamilyName
+                                            : (root.familyAvailable("Ubuntu Sans")
+                                               ? "Ubuntu Sans"
+                                               : (root.familyAvailable("Ubuntu")
+                                                  ? "Ubuntu"
+                                                  : "sans-serif")))
+    readonly property string defaultMono: root.familyAvailable("JetBrainsMono Nerd Font")
+                                           ? "JetBrainsMono Nerd Font"
+                                           : (root.familyAvailable("Ubuntu Sans Mono")
+                                              ? "Ubuntu Sans Mono"
+                                              : (root.familyAvailable("Ubuntu Mono")
+                                                 ? "Ubuntu Mono"
+                                                 : "monospace"))
+    readonly property string defaultNumeric: root.defaultMono
     // These preferences are deliberately separate from the effective family
     // properties below. An unavailable saved family is retained for the next
     // run while rendering falls back safely.
@@ -18,10 +32,10 @@ Singleton {
     property string configuredMono: ""
     property string configuredNumeric: ""
     property string configuredExpressive: ""
-    readonly property string ui: root.resolveFamily(root.configuredUi, root.defaultUi, "")
+    readonly property string ui: root.resolveFamily(root.configuredUi, root.defaultUi, "sans-serif")
     readonly property string mono: root.resolveFamily(root.configuredMono, root.defaultMono, "monospace")
     readonly property string numeric: root.resolveFamily(root.configuredNumeric, root.defaultNumeric,
-                                                         "monospace")
+                                                         root.mono)
     readonly property string expressive: root.resolveFamily(root.configuredExpressive, root.bundledFamilyName,
                                                             root.ui)
     // This role is intentionally independent of every user preference. If
@@ -38,7 +52,7 @@ Singleton {
         if (value === "")
             return false;
 
-        if (value === root.bundledFamilyName)
+        if (value === root.bundledFamilyName || (bundledFont.name && value === bundledFont.name))
             return bundledFont.status === FontLoader.Ready;
 
         return Qt.fontFamilies().indexOf(value) !== -1;
@@ -53,7 +67,7 @@ Singleton {
         if (root.familyAvailable(defaultValue))
             return defaultValue;
 
-        return genericFallback || "";
+        return genericFallback || "sans-serif";
     }
 
     function setConfiguredFamily(role, family) {

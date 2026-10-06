@@ -312,7 +312,7 @@ WidgetPanel {
             QuickSliders {
                 Layout.topMargin: sidebarScroll.gapFor(0, 1)
 
-                detailed: true
+                detailed: PersonalizationConfig.quickSettingsSlidersDetailed
                 pullExpansion: sidebarScroll.detailExpansion
                 screen: root.screen
                 Layout.fillWidth: true

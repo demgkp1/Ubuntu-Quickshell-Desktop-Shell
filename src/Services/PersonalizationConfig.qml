@@ -18,7 +18,8 @@ Singleton {
     readonly property string dashboardSidebarSide: sidebarPositions.dashboard
     readonly property string quickSettingsSidebarSide: sidebarPositions.quickSettings
     property bool keepSidebarsLoaded: true
-    property string themeMode: "dark"
+    property string themeMode: "light"
+    property bool quickSettingsSlidersDetailed: false
 
     // Bar configuration properties
     property bool barEnabled: true
