@@ -43,9 +43,10 @@ flowchart TD
    - 绝不随意向子 Agent 发送发散、模糊的自然语言。
    - 每次派出子 Agent 前，必须起草具备明确约束的标准《任务卡》。
 
-3. **双重审查门禁 (Gatekeeper)**：
+3. **三重审查门禁 (Gatekeeper)**：
    - **审查项 1 (Diff 审查)**：比对子 Agent 代码与 `reference/`。核验是否存在未经授权的 padding、margin、radius、color 改动。
-   - **审查项 2 (冒烟测试)**：运行 `scripts/smoke_test.sh`，确保 0 语法报错、0 僵尸进程、GNOME 原生顶栏正常保护。
+   - **审查项 2 (非驻留冒烟测试)**：运行 `scripts/smoke_test.sh`，确保 0 语法报错、0 僵尸进程、GNOME 原生顶栏正常保护。
+   - **审查项 3 (屏幕物理可见性审查)**：运行 `./scripts/launch.sh`，**必须在屏幕上实际看到顶栏或抽屉 UI 正常渲染**。绝对禁止仅凭后台进程存活或静态日志 Loaded 就判定为完成！
 
 ---
 
@@ -75,6 +76,7 @@ TaskCard:
   
   Allowed_Adaptations:
     - "硬件与平台动态自适应描述 (如 hasBattery 动态隐藏、外接屏软件背光)"
+    - "Mutter XCB 几何显式绑定 (显式指定 width/height 消除 0x0 塌陷)"
   
   Forbidden_Actions:
     - "严禁修改任何排版、圆角、内边距、外边距、颜色参数"
@@ -83,4 +85,55 @@ TaskCard:
   Verification_Steps:
     - "diff -u reference/... src/..."
     - "scripts/smoke_test.sh"
+    - "屏幕真实物理可见性确认"
 ```
+
+---
+
+## 五、 Ubuntu GNOME Mutter 窗口宿主与几何桥接规范 (核心经验传承)
+
+> [!CAUTION]
+> **历史严重教训**：前序 Agent 曾出现“代码全部加载通过，但用户运行 `./scripts/launch.sh` 屏幕上完全没有显示任何 UI”的严重问题。后续所有 Agent 必须铭记本规范，严防该问题重蹈覆辙！
+
+### 1. 协议根因与退化机制
+- **上游环境假设**：上游 Clavis 基于支持 `wlr-layer-shell-unstable-v1` 的 Wayland 合成器（如 Niri/Hyprland），窗口（PanelWindow）通过 `WlrLayershell.layer` 和 QML `anchors` 即可由合成器自动完成物理尺寸展开；
+- **目标环境实情**：Ubuntu 24.04 LTS 默认使用 **GNOME 46 (Mutter)**，Mutter **不支持** `wlr-layer-shell`。因此 Quickshell 必须在 XCB (XWayland) 模式下以无边框、置顶的 X11 窗口运行；
+- **0x0 尺寸塌陷陷阱**：在 XCB/XWayland 下，Mutter 对 override-redirect 窗口**绝不会自动响应纯 QML anchors 进行拉伸**。若窗口未显式绑定物理尺寸，其实际 X11 窗口几何尺寸为 `0x0`，导致视觉上空无一物！
+
+### 2. 双窗口宿主几何绑定铁律
+在挂载顶层窗口时，必须在保留上游内部所有控件 1:1 的前提下，为顶层宿主补充显式几何桥接：
+
+#### (1) 顶栏宿主 (`HorizontalBarWindow.qml`)
+- **角色定位**：常驻桌面顶部的视觉中枢，也是触发快捷设置与侧边栏的交互入口；
+- **几何桥接规则**：
+  ```qml
+  // 必须显式绑定目标屏幕的物理几何尺寸
+  screen: Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+  x: root.screen ? root.screen.geometry.x : 0
+  y: root.screen ? root.screen.geometry.y : 0
+  width: root.screen ? root.screen.geometry.width : 1920
+  height: Sizes.barVisualThickness + Sizes.barOuterEdgeMargin
+  ```
+- **可见性保证**：启动后必须立即可见，为用户提供桌面基准锚点。
+
+#### (2) 侧栏宿主 (`SidebarHostWindow.qml`)
+- **角色定位**：覆盖整个屏幕的透明捕获层，承载右侧滑出的 `QuickSettingsSidebar` 与左侧的 `DashboardSidebar`；
+- **几何桥接规则**：
+  ```qml
+  // 必须显式铺满整个屏幕，使内部 EdgeRevealSurface 具备正确的基准宽度，且 MouseArea 能全屏捕获空白点击
+  x: root.screen ? root.screen.geometry.x : 0
+  y: root.screen ? root.screen.geometry.y : 0
+  width: root.screen ? root.screen.geometry.width : 1920
+  height: root.screen ? root.screen.geometry.height : 1080
+  ```
+- **边缘抽屉联动**：
+  - 默认情况下抽屉收起（`open: false`），抽屉处于屏幕外（偏移 `width`）；
+  - 点击顶栏上的快捷设置按钮时，触发 `WidgetState.quickSettingsOpen = !WidgetState.quickSettingsOpen`，抽屉向内平滑滑出；
+  - 点击空白区域或按 ESC 触发收起，抽屉向外平滑滑出。
+
+### 3. Agent 验收红线
+所有参与视图移植的 Agent（特别是 `ViewModulePorter`）：
+- **绝对不准仅以终端输出 `Configuration Loaded` 作为交付依据**；
+- 每次交付前，必须核查顶层窗口的 `width` 与 `height` 是否在运行时大于 0；
+- 必须确保用户执行 `./scripts/launch.sh` 后，能够直接在屏幕上看到顶栏和抽屉动画。
+

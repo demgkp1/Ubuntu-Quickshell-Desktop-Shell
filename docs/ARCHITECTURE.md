@@ -184,3 +184,74 @@ timeline
     M4 : 顶栏胶囊视图 : 1:1 搬运 Modules/Bar : 对接动态硬件网络探测与无电池自适应隐藏
     M5 : 服务真实系统接入 : 平滑将 Mock 数据桩切换为 GNOME DBus / PipeWire / NetworkManager
 ```
+
+---
+
+## 九、 Ubuntu GNOME 46 Mutter 窗口宿主与几何桥接规范 (Mutter Window Hosting Bridge)
+
+### 1. 合成器协议鸿沟与 XCB 退化机理
+- **原版运行机制**：原版 Clavis 基于支持 `wlr-layer-shell-unstable-v1` 协议的 Wayland 合成器（如 Niri/Hyprland）。在这些合成器中，Quickshell 的 `PanelWindow` 作为 Layer Surface 直接与合成器通信，合成器自动解析 QML `anchors` 并完成全屏或边缘贴靠；
+- **Ubuntu 目标环境**：Ubuntu 24.04 默认使用 **GNOME 46 (Mutter)**。Mutter 原生不支持 `wlr-layer-shell` 协议。Quickshell 在检测到环境时，退化为通过 `QT_QPA_PLATFORM="xcb"`（XWayland）以无边框、置顶的 override-redirect X11 窗口运行；
+- **关键陷阱：0x0 几何塌陷**：
+  - 在 XCB 模式下，Mutter 绝不会根据 QML anchors 自动拉伸未受管理的 override-redirect 窗口；
+  - 若窗口未显式绑定物理像素宽高（`width` / `height`），其实际 X11 窗口几何尺寸将沦为 `0x0`，造成“后台进程显示运行正常，但屏幕上没有任何 UI”的致命现象。
+
+### 2. 双宿主窗口显式几何规范 (Dual Window Hosting Specification)
+
+本项目坚持“**内部控件 100% 镜像，仅在最外层顶层 Window 宿主实施物理几何桥接**”原则：
+
+```mermaid
+flowchart TD
+    Screen["屏幕物理分辨率 (screen.geometry.width x height)"]
+    
+    subgraph HostWindows [GNOME Mutter 顶层宿主窗口]
+        BarWin["HorizontalBarWindow (常驻顶栏)"]
+        SidebarWin["SidebarHostWindow (全屏透明捕获层)"]
+    end
+    
+    Screen -->|"显式绑定 width: screen.geometry.width, height: barThickness"| BarWin
+    Screen -->|"显式绑定 width: screen.geometry.width, height: screen.geometry.height"| SidebarWin
+    
+    subgraph UI_Modules [1:1 原装 UI 模块 (内部 0 篡改)]
+        BarPill["TopBar 药丸胶囊 & 控制中心触发按钮"]
+        RevealSurface["EdgeRevealSurface (边缘抽屉)"]
+        QSView["QuickSettingsSurface (原装控制中心卡片)"]
+    end
+    
+    BarWin --> BarPill
+    BarPill -->|"点击触发: WidgetState.quickSettingsOpen = true"| SidebarWin
+    SidebarWin --> RevealSurface
+    RevealSurface --> QSView
+```
+
+#### (1) 顶栏宿主：`HorizontalBarWindow.qml`
+- **定位**：常驻桌面顶部，提供时间、状态胶囊与快捷设置入口；
+- **几何要求**：
+  ```qml
+  screen: Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+  x: root.screen ? root.screen.geometry.x : 0
+  y: root.screen ? root.screen.geometry.y : 0
+  width: root.screen ? root.screen.geometry.width : 1920
+  height: Sizes.barVisualThickness + Sizes.barOuterEdgeMargin
+  ```
+- 保证启动后立即可见，用户可以直接点击顶栏右侧的胶囊。
+
+#### (2) 侧栏宿主：`SidebarHostWindow.qml`
+- **定位**：覆盖整个屏幕的透明捕获层；
+- **几何要求**：
+  ```qml
+  screen: Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+  x: root.screen ? root.screen.geometry.x : 0
+  y: root.screen ? root.screen.geometry.y : 0
+  width: root.screen ? root.screen.geometry.width : 1920
+  height: root.screen ? root.screen.geometry.height : 1080
+  ```
+- **交互收起机制**：
+  - 背景为全透明 `color: "transparent"`；
+  - 只有当 `WidgetState.quickSettingsOpen == true` 时，右侧的 `QuickSettingsSidebar` 抽屉才向内平滑滑出；
+  - 点击非抽屉的空白屏幕区域，MouseArea 捕获点击并设置 `WidgetState.quickSettingsOpen = false`，抽屉向外平滑滑出；
+  - 按下键盘 `Esc` 键时，全局 Shortcut 触发关闭。
+
+### 3. 后续 Agent 验收铁律
+所有 Agent 必须谨记：**凡是交付涉及窗口渲染的任务，必须实际运行 `./scripts/launch.sh`，以屏幕上肉眼亲眼看到顶栏与控制中心正常渲染为唯一验收合格标志**！
+
