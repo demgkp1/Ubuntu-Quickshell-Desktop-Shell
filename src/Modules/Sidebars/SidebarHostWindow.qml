@@ -114,11 +114,11 @@ PanelWindow {
         bottom: true
     }
 
-    WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.namespace: "clavis-shell-sidebars"
-    // Reveal from physical screen edges, including the bar/dock reserved area.
-    WlrLayershell.exclusionMode: ExclusionMode.Ignore
-    WlrLayershell.keyboardFocus: root.anySidebarOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+    // WlrLayershell attached properties break window attachment under Mutter XCB.
+    // WlrLayershell.layer: WlrLayer.Overlay
+    // WlrLayershell.namespace: "clavis-shell-sidebars"
+    // WlrLayershell.exclusionMode: ExclusionMode.Ignore
+    // WlrLayershell.keyboardFocus: root.anySidebarOpen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     Binding {
         target: WidgetState

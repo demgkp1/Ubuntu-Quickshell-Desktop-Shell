@@ -17,4 +17,6 @@ Singleton {
     readonly property bool powerConnected: true
     readonly property real timeToEmpty: NaN
     readonly property real timeToFull: NaN
+    readonly property real changeRate: NaN
+    readonly property real healthPercentage: NaN
 }

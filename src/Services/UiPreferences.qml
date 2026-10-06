@@ -9,6 +9,8 @@ Singleton {
     property bool dndEnabled: false
     property bool darkMode: true
     property string language: "en_US"
+    property string weatherTemperatureUnit: "celsius"
+    property string systemTemperatureUnit: "celsius"
 
     function toggleDnd() {
         dndEnabled = !dndEnabled;
@@ -20,5 +22,21 @@ Singleton {
 
     function setDarkMode(val) {
         darkMode = !!val;
+    }
+
+    function weatherTemperature(c) {
+        return c;
+    }
+
+    function systemTemperature(c) {
+        return c;
+    }
+
+    function weatherTemperatureSymbol() {
+        return weatherTemperatureUnit === "fahrenheit" ? "°F" : "°C";
+    }
+
+    function systemTemperatureSymbol() {
+        return systemTemperatureUnit === "fahrenheit" ? "°F" : "°C";
     }
 }

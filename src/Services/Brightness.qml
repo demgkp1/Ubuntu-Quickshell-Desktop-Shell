@@ -9,6 +9,7 @@ Singleton {
     signal brightnessChanged()
 
     property real brightnessValue: 0.75
+    property bool hasHardwareBacklight: false
     readonly property var activeScreen: Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
     property var monitors: []
     property var ddcMonitors: []

@@ -13,6 +13,7 @@ Singleton {
     property string activeConnection: "Wired Connection"
     property bool wiredConnected: true
     property bool wifiConnected: false
+    property string activeConnectionType: wiredConnected ? "ETHERNET" : (wifiConnected ? "WIFI" : "")
 
     readonly property bool ethernetConnected: wiredConnected
     property string wifiSignalIcon: "wifi"
