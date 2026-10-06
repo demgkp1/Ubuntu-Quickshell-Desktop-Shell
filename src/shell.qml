@@ -30,29 +30,6 @@ ShellRoot {
             });
         }
 
-        // Trigger toggle via timer for smoke test verification of QuickSettings expansion
-        Timer {
-            id: testTriggerTimer
-            interval: 500
-            running: true
-            repeat: false
-            onTriggered: {
-                console.warn("[M4 Test] Triggering QuickSettings open...");
-                WidgetState.quickSettingsOpen = true;
-            }
-        }
-
-        // Trigger close via timer for verification of QuickSettings collapse
-        Timer {
-            id: testCloseTimer
-            interval: 1800
-            running: true
-            repeat: false
-            onTriggered: {
-                console.warn("[M4 Test] Triggering QuickSettings close...");
-                WidgetState.quickSettingsOpen = false;
-            }
-        }
 
         Connections {
             target: WidgetState

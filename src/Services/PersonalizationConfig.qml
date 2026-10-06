@@ -32,6 +32,12 @@ Singleton {
     property var barTrailingComponents: defaultBarTrailingComponents.slice()
     readonly property var barComponentIds: ["information", "activeWindow", "quickSettings"]
     readonly property var quickSettingsComponents: ["network", "bluetooth", "brightness", "volume", "microphone", "battery", "settings", "power"]
+    property var hotCornerActions: ({
+        "top-left": "disabled",
+        "top-right": "disabled",
+        "bottom-left": "disabled",
+        "bottom-right": "disabled"
+    })
 
     function setThemeMode(mode) {
         themeMode = mode === "light" ? "light" : "dark";

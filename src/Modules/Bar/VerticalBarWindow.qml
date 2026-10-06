@@ -46,7 +46,7 @@ PanelWindow {
         x: axis.isLeft ? root.outerEdgeMargin : Sizes.barShadowBuffer
         y: 0
         width: root.visualThickness
-        height: parent.height
+        height: root.height
 
         VerticalBarContent {
             id: content

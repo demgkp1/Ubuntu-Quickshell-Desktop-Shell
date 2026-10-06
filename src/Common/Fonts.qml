@@ -30,7 +30,8 @@ Singleton {
     // family.
     readonly property string systemClock: root.bundledFamilyName
     readonly property string materialSymbolsRounded: "Material Symbols Rounded"
-    readonly property string materialSymbolsOutlined: "Material Symbols Outlined"
+    readonly property string materialSymbolsOutlined: root.familyAvailable("Material Symbols Outlined")
+                                                      ? "Material Symbols Outlined" : root.materialSymbolsRounded
 
     function familyAvailable(family) {
         const value = String(family || "").trim();

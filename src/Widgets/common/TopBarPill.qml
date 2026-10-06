@@ -33,11 +33,7 @@ Item {
             id: contentViewport
             anchors.fill: parent
             clip: true
-            layer.enabled: true
-            layer.effect: MultiEffect {
-                maskEnabled: true
-                maskSource: contentMask
-            }
+            layer.enabled: false
         }
     ]
 

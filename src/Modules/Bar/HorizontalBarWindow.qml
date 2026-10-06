@@ -46,7 +46,7 @@ PanelWindow {
 
         x: 0
         y: axis.isTop ? root.outerEdgeMargin : Sizes.barShadowBuffer
-        width: parent.width
+        width: root.width
         height: root.visualThickness
 
         HorizontalBarContent {
