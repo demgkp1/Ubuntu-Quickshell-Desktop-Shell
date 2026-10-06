@@ -7,55 +7,70 @@ import QtQuick.Layouts
 import Quickshell
 import qs.Common
 import qs.Components
+import qs.Modules.Sidebars
+import qs.Services
 import qs.Widgets.common
 
 ShellRoot {
+    id: shellRoot
+
     Component.onCompleted: {
-        console.log("================ M2 COMPONENTS & WIDGETS VALIDATION ================");
-        console.log("[M2 Symbol] text: " + testSymbol.text + ", size: " + testSymbol.iconSize);
-        console.log("[M2 SplitSlider] value: " + testSlider.value + ", trackWidth: " + testSlider.trackWidth);
-        console.log("[M2 SplitSlider] highlightColor: " + testSlider.highlightColor);
-        console.log("[M2 QuickToggle] toggled: " + testToggle.toggled + ", title: " + testToggle.title);
-        console.log("[M2 WidgetPanel] radius: " + testPanel.radius);
-        console.log("[M2 TopBarPill] radius: " + testPill.radius);
-        console.log("=====================================================================");
+        console.log("================ M3 SIDEBAR HOST & QUICK SETTINGS VALIDATION ================");
+        console.log("[M3 SidebarHost] width: " + sidebarHost.width + ", height: " + sidebarHost.height);
+        console.log("[M3 SidebarHost] screen: " + (sidebarHost.screen ? sidebarHost.screen.name : "none"));
+        console.log("[M3 State] quickSettingsOpen: " + WidgetState.quickSettingsOpen);
+        console.log("=============================================================================");
     }
 
-    Item {
-        id: container
-        visible: false
+    SidebarHostWindow {
+        id: sidebarHost
+    }
 
-        MaterialSymbol {
-            id: testSymbol
-            text: "volume_up"
-            iconSize: 24
+    // Trigger toggle via timer for smoke test verification of QuickSettings expansion
+    Timer {
+        id: testTriggerTimer
+        interval: 500
+        running: true
+        repeat: false
+        onTriggered: {
+            console.log("[M3 Test] Triggering QuickSettings open...");
+            WidgetState.quickSettingsOpen = true;
         }
+    }
 
-        MaterialSplitSlider {
-            id: testSlider
-            value: 0.35
-            width: 200
-            height: 40
+    // Trigger close via timer for verification of QuickSettings collapse
+    Timer {
+        id: testCloseTimer
+        interval: 1800
+        running: true
+        repeat: false
+        onTriggered: {
+            console.log("[M3 Test] Triggering QuickSettings close...");
+            WidgetState.quickSettingsOpen = false;
         }
+    }
 
-        QuickToggleButton {
-            id: testToggle
-            title: "Wi-Fi"
-            subtitle: "Connected"
-            iconName: "wifi"
-            toggled: true
+    Connections {
+        target: WidgetState
+        function onQuickSettingsOpenChanged() {
+            console.log("[M3 State Transition] WidgetState.quickSettingsOpen changed to:", WidgetState.quickSettingsOpen);
         }
+    }
 
-        WidgetPanel {
-            id: testPanel
-            width: 300
-            height: 200
+    // Interactive shortcuts to toggle QuickSettings
+    Shortcut {
+        sequence: "F1"
+        onActivated: {
+            WidgetState.quickSettingsOpen = !WidgetState.quickSettingsOpen;
+            console.log("[M3 Test] F1 toggled quickSettingsOpen:", WidgetState.quickSettingsOpen);
         }
+    }
 
-        TopBarPill {
-            id: testPill
-            width: 100
-            height: Sizes.barPillThickness
+    Shortcut {
+        sequence: "Ctrl+Alt+S"
+        onActivated: {
+            WidgetState.quickSettingsOpen = !WidgetState.quickSettingsOpen;
+            console.log("[M3 Test] Ctrl+Alt+S toggled quickSettingsOpen:", WidgetState.quickSettingsOpen);
         }
     }
 }
