@@ -19,6 +19,8 @@
           quickshell.packages.${system}.default
           pkgs.qt6.qtdeclarative
           pkgs.pkg-config
+          pkgs.matugen
+          pkgs.jq
         ];
 
         shellHook = ''
