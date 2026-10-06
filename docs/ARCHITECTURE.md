@@ -29,16 +29,17 @@
 
 ```text
 src/
-├── Common/ -> common/         # 【设计系统基石】Appearance、Metrics、Typography、Animations
-├── Components/ -> components/ # 【基础矢量控件】MaterialSymbol、ThemeIcon、SvgIcon 等
-├── Widgets/ -> widgets/       # 【交互复用组件】MaterialSplitSlider、QuickToggleButton、WidgetPanel 等
-├── Modules/ -> modules/       # 【业务视图切片】
+├── Common/                    # 【设计系统基石】Appearance、Metrics、Typography、Animations (1:1 镜像)
+├── Components/                # 【基础矢量控件】MaterialSymbol、ThemeIcon、SvgIcon 等 (1:1 镜像)
+├── Widgets/                   # 【交互复用组件】MaterialSplitSlider、QuickToggleButton、WidgetPanel 等 (1:1 镜像)
+├── Modules/                   # 【业务视图切片】(1:1 镜像)
 │   ├── Bar/                   # 顶栏胶囊视图 (TopBar, HorizontalBarWindow)
 │   ├── QuickSettings/         # 原装快捷设置卡片 (QuickSettingsSurface, QuickSliders)
 │   ├── Sidebars/              # 原装宿主侧栏 (SidebarHostWindow, EdgeRevealSurface)
 │   ├── Keystone/              # 灵动岛 / 顶部交互弹窗
 │   └── Dock/                  # 悬浮应用 Dock 栏
-├── Services/ -> services/     # 【纯适配服务层】对接系统底层通信与动态数据模型
+├── Services/                  # 【纯适配服务层】对接系统底层通信与动态数据模型
+├── assets/                    # 官方字体 (fonts/) 与矢量资源
 └── shell.qml                  # 【顶层启动入口】ShellRoot 调度
 ```
 

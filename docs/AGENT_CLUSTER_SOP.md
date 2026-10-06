@@ -53,10 +53,10 @@ flowchart TD
 
 | 角色代码 | 角色名称 | 允许操作范围 | 职责与红线 |
 | :--- | :--- | :--- | :--- |
-| **`AssetTokensPorter`** | 基石资产移植专家 | `src/common/`、`src/assets/` | 负责设计系统令牌（Appearance、Metrics、Typography）与字体 Shader 1:1 克隆。**红线：严禁篡改原版配色算法**。 |
-| **`ComponentPorter`** | 基础矢量控件专家 | `src/components/`、`src/widgets/common/` | 负责基础矢量按键、双轨滑块、输入框的 1:1 克隆。**红线：强制检查并锁定 `ArrowCursor`，杜绝光标形变**。 |
-| **`ViewModulePorter`** | 原装视图装配专家 | `src/modules/*`、`src/shell.qml` | 负责顶栏、控制中心、抽屉的原生视图组装与宿主挂载。**红线：严禁自创手写私有窗口外壳，必须 1:1 复刻上游窗口声明**。 |
-| **`ServiceAdapter`** | 纯系统通信适配专家 | `src/services/*` | 负责打桩 Mock 数据与对接真实 GNOME DBus、PipeWire、NetworkManager。**红线：绝对不准触碰任何 UI 文件**。 |
+| **`AssetTokensPorter`** | 基石资产移植专家 | `src/Common/`、`src/assets/` | 负责设计系统令牌（Appearance、Metrics、Typography）与字体 Shader 1:1 克隆。**红线：严禁篡改原版配色算法**。 |
+| **`ComponentPorter`** | 基础矢量控件专家 | `src/Components/`、`src/Widgets/` | 负责基础矢量按键、双轨滑块、输入框的 1:1 克隆。**红线：强制检查并锁定 `ArrowCursor`，杜绝光标形变**。 |
+| **`ViewModulePorter`** | 原装视图装配专家 | `src/Modules/*`、`src/shell.qml` | 负责顶栏、控制中心、抽屉的原生视图组装与宿主挂载。**红线：严禁自创手写私有窗口外壳，必须 1:1 复刻上游窗口声明**。 |
+| **`ServiceAdapter`** | 纯系统通信适配专家 | `src/Services/*` | 负责打桩 Mock 数据与对接真实 GNOME DBus、PipeWire、NetworkManager。**红线：绝对不准触碰任何 UI 文件**。 |
 
 ---
 
