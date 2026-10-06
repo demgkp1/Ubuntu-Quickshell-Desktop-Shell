@@ -2,27 +2,58 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Quickshell.Networking
 
 Singleton {
     id: root
 
-    property bool available: true
-    property bool wifiAvailable: true
-    property bool wifiEnabled: true
-    property bool connected: true
-    property string activeConnection: "Wired Connection"
-    property bool wiredConnected: true
-    property bool wifiConnected: false
-    property string activeConnectionType: wiredConnected ? "ETHERNET" : (wifiConnected ? "WIFI" : "")
+    readonly property var _nativeDevices: Networking.devices ? Networking.devices.values : []
+    readonly property var _nativeWifiDevices: _nativeDevices.filter(device => device && device.type === DeviceType.Wifi)
+    readonly property var _nativeWiredDevices: _nativeDevices.filter(device => device && device.type === DeviceType.Wired)
+    readonly property bool hasNativeDevices: _nativeDevices.length > 0
+
+    property bool fallbackWiredConnected: true
+    property bool fallbackWifiConnected: false
+    property bool fallbackConnected: true
+    property bool fallbackWifiEnabled: true
+
+    readonly property bool available: Networking.backend === NetworkBackendType.NetworkManager || true
+    readonly property bool wifiAvailable: hasNativeDevices ? _nativeWifiDevices.length > 0 : true
+    readonly property bool wifiEnabled: hasNativeDevices ? Networking.wifiEnabled : fallbackWifiEnabled
+    readonly property bool wifiHardwareEnabled: hasNativeDevices ? Networking.wifiHardwareEnabled : true
+    readonly property bool wiredConnected: hasNativeDevices ? _nativeWiredDevices.some(device => device && device.connected) : fallbackWiredConnected
+    readonly property bool wifiConnected: hasNativeDevices ? _nativeWifiDevices.some(device => device && device.connected) : fallbackWifiConnected
+    readonly property bool connected: hasNativeDevices ? _nativeDevices.some(device => device && device.connected) : fallbackConnected
+
+    readonly property string activeWiredDeviceName: {
+        for (let i = 0; i < _nativeWiredDevices.length; i += 1) {
+            if (_nativeWiredDevices[i] && _nativeWiredDevices[i].connected)
+                return _nativeWiredDevices[i].name || "Ethernet";
+        }
+        return "Ethernet";
+    }
+
+    readonly property string activeWifiSsid: {
+        for (let i = 0; i < _nativeWifiDevices.length; i += 1) {
+            const dev = _nativeWifiDevices[i];
+            if (dev && dev.connected && dev.activeNetwork)
+                return dev.activeNetwork.name || "Wi-Fi";
+        }
+        return "Wi-Fi";
+    }
+
+    property string activeConnection: wiredConnected ? (hasNativeDevices ? activeWiredDeviceName : "Wired Connection") :
+                                      wifiConnected ? (hasNativeDevices ? activeWifiSsid : "Wi-Fi") :
+                                      connected ? qsTr("Connected") : qsTr("Disconnected")
+    property string activeConnectionType: wiredConnected ? "ETHERNET" : (wifiConnected ? "WIFI" : (connected ? "OTHER" : ""))
 
     readonly property bool ethernetConnected: wiredConnected
     property string wifiSignalIcon: "wifi"
     property int signalStrength: 85
-    property bool internetAvailable: true
-    property bool captivePortal: false
-    property bool limitedConnectivity: false
+    readonly property bool internetAvailable: hasNativeDevices ? (Networking.connectivity === NetworkConnectivity.Full) : true
+    readonly property bool captivePortal: hasNativeDevices ? (Networking.connectivity === NetworkConnectivity.Portal) : false
+    readonly property bool limitedConnectivity: hasNativeDevices ? (Networking.connectivity === NetworkConnectivity.Limited) : false
     property bool busy: false
-    property bool wifiHardwareEnabled: true
     property string lastError: ""
     property string connectTargetUuid: ""
     property var wifiConnectTarget: null
@@ -33,7 +64,7 @@ Singleton {
         connected: root.connected
     })
     property var activeWifi: null
-    property var wiredDevices: [
+    property var wiredDevices: hasNativeDevices ? _nativeWiredDevices : [
         {
             name: "eth0",
             deviceName: "Ethernet",
@@ -45,11 +76,17 @@ Singleton {
     property var savedWifiProfiles: []
 
     function toggleWifi() {
-        wifiEnabled = !wifiEnabled;
+        if (hasNativeDevices)
+            Networking.wifiEnabled = !Networking.wifiEnabled;
+        else
+            fallbackWifiEnabled = !fallbackWifiEnabled;
     }
 
     function setWifiEnabled(v) {
-        wifiEnabled = !!v;
+        if (hasNativeDevices)
+            Networking.wifiEnabled = !!v;
+        else
+            fallbackWifiEnabled = !!v;
     }
 
     function disconnectNetwork(target) {}
