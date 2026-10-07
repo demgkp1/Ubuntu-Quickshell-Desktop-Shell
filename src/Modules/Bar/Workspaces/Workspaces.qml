@@ -106,13 +106,13 @@ TopBarPill {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.ArrowCursor
-                    onClicked: root.currentWorkspaceId = model.id
+                    onClicked: root.currentWorkspaceId = delegateRoot.modelData ? delegateRoot.modelData.id : 1
                 }
 
                 PopupToolTip {
                     extraVisibleCondition: mouseArea.containsMouse
-                    text: qsTr("Workspace ") + model.id + (delegateRoot.hasWindows ? qsTr("\nWindows: ")
-                                                                                     + model.windowCount : "")
+                    text: qsTr("Workspace ") + (delegateRoot.modelData ? delegateRoot.modelData.id : "") + (delegateRoot.hasWindows ? qsTr("\nWindows: ")
+                                                                                     + (delegateRoot.modelData ? delegateRoot.modelData.windowCount : "") : "")
                 }
             }
         }

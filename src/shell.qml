@@ -14,6 +14,7 @@ import qs.Modules.DesktopCards
 import qs.Modules.Dock
 import qs.Modules.Keystone
 import qs.Modules.Launcher
+import qs.Modules.Lock
 import qs.Modules.PowerMenu
 import qs.Modules.Sidebars
 import qs.Services
@@ -185,6 +186,11 @@ ShellRoot {
         }
     }
 
+    // Lock subsystem
+    Lock {
+        id: sessionLocker
+    }
+
     // Power Menu subsystem
     PowerMenu {
         id: powerMenu
@@ -196,7 +202,7 @@ ShellRoot {
             console.log("[PowerMenu] Action requested:", action);
             switch (action) {
             case "lock":
-                Quickshell.execDetached(["loginctl", "lock-session"]);
+                sessionLocker.open();
                 break;
             case "logout":
                 Quickshell.execDetached(["gnome-session-quit", "--logout", "--no-prompt"]);
@@ -238,6 +244,26 @@ ShellRoot {
         function trigger(action: string): string {
             PowerMenuService.trigger(action || "");
             return String(action).toUpperCase();
+        }
+    }
+
+    IpcHandler {
+        target: "lock"
+
+        function open(): string {
+            return sessionLocker.open();
+        }
+
+        function unlock(): string {
+            return sessionLocker.unlock();
+        }
+
+        function close(): string {
+            return sessionLocker.close();
+        }
+
+        function isLocked(): bool {
+            return sessionLocker.isLocked();
         }
     }
 
