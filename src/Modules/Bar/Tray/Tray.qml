@@ -35,7 +35,7 @@ TopBarPill {
                               * Sizes.barPillHorizontalPadding
 
     onUnpinnedItemsChanged: {
-        if (root.unpinnedItems.length === 0) {
+        if (!root.unpinnedItems || root.unpinnedItems.length === 0) {
             root.trayOverflowOpen = false;
             root.overflowAnchorReady = false;
         } else if (root.trayOverflowOpen) {
@@ -149,12 +149,12 @@ TopBarPill {
         anchors.centerIn: parent
         rowSpacing: Sizes.barItemSpacing
         columnSpacing: Sizes.barItemSpacing
-        columns: root.vertical ? 1 : Math.max(1, root.pinnedItems.length + 1)
+        columns: root.vertical ? 1 : Math.max(1, (root.pinnedItems ? root.pinnedItems.length : 0) + 1)
 
         RippleButton {
             id: trayOverflowButton
 
-            visible: root.unpinnedItems.length > 0
+            visible: root.unpinnedItems ? root.unpinnedItems.length > 0 : false
             toggled: root.trayOverflowOpen
             implicitWidth: Sizes.barControlCircleSize
             implicitHeight: Sizes.barControlCircleSize
@@ -348,7 +348,7 @@ TopBarPill {
                         id: overflowLayout
 
                         anchors.centerIn: parent
-                        columns: Math.max(1, Math.ceil(Math.sqrt(root.unpinnedItems.length)))
+                        columns: Math.max(1, Math.ceil(Math.sqrt(root.unpinnedItems ? root.unpinnedItems.length : 0)))
                         columnSpacing: 10
                         rowSpacing: 10
 

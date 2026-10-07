@@ -364,6 +364,13 @@ Singleton {
             return;
         }
 
+        if (exitCode < 0 || exitCode === 127 || exitCode === 255 || reason === "failed_to_start") {
+            root._fatalError = true;
+            root.reconnectAttempt = root.maximumReconnectAttempts;
+            root.state = "error";
+            return;
+        }
+
         if (root._fatalError) {
             root.state = "error";
             return;

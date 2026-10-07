@@ -13,6 +13,7 @@ Singleton {
     property var wallpapers: [currentWallpaper]
     property bool busy: false
     property int revision: 0
+    property int settingsRevision: 0
     property bool switching: false
     property bool scanning: false
 

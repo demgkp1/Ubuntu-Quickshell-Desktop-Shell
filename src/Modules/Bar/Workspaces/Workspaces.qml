@@ -57,9 +57,11 @@ TopBarPill {
 
                 readonly property bool resizing: widthAnimation.running || heightAnimation.running
 
-                property bool belongsToScreen: root.acceptsOutput(model.output)
-                property bool active: model.isActive
-                property bool hasWindows: model.windowCount > 0
+                required property var modelData
+
+                property bool belongsToScreen: root.acceptsOutput(modelData ? modelData.output : "")
+                property bool active: modelData ? !!modelData.isActive : false
+                property bool hasWindows: modelData ? (modelData.windowCount > 0) : false
                 property bool isHovered: mouseArea.containsMouse
 
                 visible: belongsToScreen
