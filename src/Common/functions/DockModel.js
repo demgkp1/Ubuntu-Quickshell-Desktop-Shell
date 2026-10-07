@@ -4,9 +4,9 @@ function defaults() {
     return {
         enabled: true,
         position: "bottom",
-        iconSize: 48,
+        iconSize: 38,
         magnification: true,
-        magnificationScale: 1.5,
+        magnificationScale: 1.3,
         autoHide: false,
         launchBounce: true,
         showIndicators: true,

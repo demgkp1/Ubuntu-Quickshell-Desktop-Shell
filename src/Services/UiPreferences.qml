@@ -33,6 +33,27 @@ Singleton {
     property var drawerGridLayout: ({})
     property var systemCards: ({})
 
+    property string spotlightSearchEngine: "google"
+    property string spotlightAppOrder: "name"
+    property string spotlightAppStyle: "list"
+    property string spotlightClipboardStyle: "default"
+
+    function setSpotlightSearchEngine(value) {
+        spotlightSearchEngine = value || "google";
+    }
+
+    function setSpotlightAppOrder(value) {
+        spotlightAppOrder = value || "name";
+    }
+
+    function setSpotlightAppStyle(value) {
+        spotlightAppStyle = value === "grid" ? "grid" : "list";
+    }
+
+    function setSpotlightClipboardStyle(value) {
+        spotlightClipboardStyle = value || "default";
+    }
+
     function toggleDnd() {
         dndEnabled = !dndEnabled;
     }
