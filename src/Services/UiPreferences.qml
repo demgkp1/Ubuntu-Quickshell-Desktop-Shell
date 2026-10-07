@@ -61,6 +61,14 @@ Singleton {
         return systemTemperatureUnit === "fahrenheit" ? "°F" : "°C";
     }
 
+    function shortTime(value) {
+        return Qt.formatDateTime(value, root.useTwelveHourClock ? "hh:mm AP" : "HH:mm");
+    }
+
+    function hourTime(value) {
+        return Qt.formatDateTime(value, root.useTwelveHourClock ? "hh AP" : "HH:00");
+    }
+
     function setCardLayouts(cards, layout) {
         try {
             root.systemCards = JSON.parse(JSON.stringify(cards || {}));

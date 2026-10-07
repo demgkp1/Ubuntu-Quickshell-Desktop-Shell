@@ -8,6 +8,7 @@ import Quickshell
 import qs.Common
 import qs.Components
 import qs.Modules.Bar
+import qs.Modules.Keystone
 import qs.Modules.Sidebars
 import qs.Services
 import qs.Widgets.common
@@ -47,6 +48,11 @@ ShellRoot {
     // Fullscreen transparent overlay sidebar host window
     SidebarHostWindow {
         id: sidebarHost
+    }
+
+    // Keystone Dynamic Island
+    Keystone {
+        id: keystone
     }
 
     // Interactive shortcuts to toggle QuickSettings
