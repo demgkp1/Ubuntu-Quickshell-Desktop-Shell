@@ -1,4 +1,6 @@
 import QtQuick
+import qs.Modules.ControlCenter
+import qs.Modules.FilePicker
 import qs.Common
 import qs.Services
 import qs.Widgets.common
@@ -19,12 +21,17 @@ Item {
     property bool presentationOpen: false
     property bool keepLoaded: PersonalizationConfig.keepSidebarsLoaded
     property var weatherSourceOverride: null
-    readonly property bool contentReady: true
+    readonly property bool contentReady: sidebarContentLoader.status === Loader.Ready
+                                         && sidebarContentLoader.item !== null
+                                         && sidebarContentLoader.item.readyForPresentation
+    // A presented surface is only created after contentReady. It remains
+    // operational until the closing reveal has fully covered its contents.
     readonly property bool contentOperational: panelPresented
     readonly property string activeView: WidgetState.dashboardSidebarView
-    readonly property int instantiatedViewCount: 0
-    readonly property var weatherView: null
-
+    readonly property int instantiatedViewCount: sidebarContentLoader.item
+                                                 ? sidebarContentLoader.item.instantiatedViewCount : 0
+    readonly property var weatherView: sidebarContentLoader.item ? sidebarContentLoader.item.weatherView :
+                                                                   null
     function preparePresentation() {
         contentRetained = true;
         startPresentation();
@@ -50,6 +57,7 @@ Item {
         if (requestedOpen)
             return;
 
+        // Finish hiding the surface before releasing its layout tree.
         revealSurface.reset();
         panelPresented = false;
         if (!root.keepLoaded)
@@ -58,6 +66,8 @@ Item {
     }
 
     Component.onCompleted: {
+        // Retain after the first open; keeping content warm must not
+        // instantiate the entire sidebar during shell startup.
         if (requestedOpen)
             preparePresentation();
     }
@@ -103,8 +113,70 @@ Item {
         backgroundColor: BlurService.backgroundColor(Appearance.colors.colLayer0)
         onClosed: root.finishClosing()
 
-        Item {
+        Loader {
+            id: sidebarContentLoader
+
             anchors.fill: parent
+            active: root.contentRetained
+            asynchronous: true
+            sourceComponent: dashboardSidebarContentComponent
+        }
+    }
+
+    // Keep file selection alive when the sidebar content is unloaded. This is
+    // an independent window, so hiding the sidebar host cannot hide the picker.
+    FilePickerWindow {
+        id: profileImagePicker
+
+        property bool forAvatar: true
+
+        dialogTitle: forAvatar ? qsTranslate("AccountPage", "Choose avatar") : qsTranslate(
+                                     "AccountProfileHeader", "Choose banner image")
+        description: forAvatar ? qsTranslate("FilePickerWindow", "Choose an image for your user avatar") : ""
+        selectionPrompt: forAvatar ? qsTranslate("FilePickerWindow", "Choose an image") : dialogTitle
+        windowIconName: forAvatar ? "add_photo_alternate" : "wallpaper"
+
+        function chooseImage(avatar) {
+            forAvatar = avatar;
+            // Capture the output rather than follow subsequent sidebar moves.
+            targetScreen = root.panelScreen;
+            WidgetState.closeAllPopups();
+            const banner = WallpaperPaletteSession.previewForScreen("banner", "")
+                  || PersonalizationConfig.bannerSource || WallpaperService.currentWallpaper;
+            openAt(avatar ? picturesDir : WallpaperService.isImagePath(banner) ? WallpaperService.parentFolder(
+                                                                                     banner) : PersonalizationConfig.wallpaperFolder);
+        }
+
+        onAccepted: (path, isDirectory) => {
+            if (isDirectory)
+                return;
+            if (forAvatar)
+                AvatarService.setAvatar(path);
+            else
+                PersonalizationConfig.setBannerSource(path);
+        }
+    }
+
+    // The palette session must survive unloading the information page as well.
+    WallpaperColorPicker {
+        id: bannerColorPicker
+        requiresParentWindow: false
+    }
+
+    Component {
+        id: dashboardSidebarContentComponent
+
+        DashboardSidebarContent {
+            anchors.fill: parent
+            screenName: root.panelScreen ? root.panelScreen.name : ""
+            onImageSelectionRequested: forAvatar => profileImagePicker.chooseImage(forAvatar)
+            onBannerColorRequested: {
+                WidgetState.closeAllPopups();
+                bannerColorPicker.showFor("banner", "");
+            }
+            weatherSourceOverride: root.weatherSourceOverride
+            foreground: root.contentOperational
+            presentationActive: root.contentOperational
         }
     }
 }

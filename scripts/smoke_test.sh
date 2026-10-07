@@ -13,6 +13,7 @@ export XCURSOR_SIZE="24"
 export XCURSOR_PATH="/usr/share/icons:/home/dkp/.icons"
 export QT_QUICK_BACKEND="software"
 export QT_QPA_PLATFORM="xcb"
+export QML2_IMPORT_PATH="$PROJECT_DIR/imports:${QML2_IMPORT_PATH:-}"
 
 cleanup() {
     killall quickshell 2>/dev/null || true

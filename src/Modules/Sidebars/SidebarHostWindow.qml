@@ -43,7 +43,7 @@ PanelWindow {
         if (role === "")
             return "INVALID_SIDE";
         const requestedView = String(target || "").trim().toLowerCase();
-        if (open && (requestedView === "weather" || requestedView === "drawer"))
+        if (open && (requestedView === "weather" || requestedView === "drawer" || requestedView === "info"))
             WidgetState.dashboardSidebarView = requestedView;
         if (role === "dashboard")
             WidgetState.dashboardSidebarOpen = open;
