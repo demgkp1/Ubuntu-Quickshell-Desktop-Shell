@@ -233,11 +233,11 @@ TopBarPill {
             right: true
         }
 
-        WlrLayershell.layer: root.QsWindow.window ? root.QsWindow.window.WlrLayershell.layer : WlrLayer.Top
-        WlrLayershell.namespace: "clavis-shell-tray-overflow"
-        WlrLayershell.keyboardFocus: overflowPopup.visible ? WlrKeyboardFocus.Exclusive :
-                                                             WlrKeyboardFocus.None
-        WlrLayershell.exclusionMode: ExclusionMode.Ignore
+        // WlrLayershell attached properties break window attachment under Mutter XCB.
+        // WlrLayershell.layer: root.QsWindow.window ? root.QsWindow.window.WlrLayershell.layer : WlrLayer.Top
+        // WlrLayershell.namespace: "clavis-shell-tray-overflow"
+        // WlrLayershell.keyboardFocus: overflowPopup.visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+        // WlrLayershell.exclusionMode: ExclusionMode.Ignore
 
         mask: Region {
             item: overflowInputRegion

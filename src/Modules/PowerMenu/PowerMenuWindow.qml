@@ -15,9 +15,46 @@ PanelWindow {
 
     property int selectedIndex: 0
 
-    readonly property bool isActive: PowerMenuService.active && targetScreen
-                                     && (PowerMenuService.targetScreenName === ""
-                                         || targetScreen.name === PowerMenuService.targetScreenName)
+    readonly property bool isTargetScreen: {
+        if (!PowerMenuService.targetScreenName || PowerMenuService.targetScreenName === "")
+            return targetScreen === (Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null);
+        return targetScreen && targetScreen.name === PowerMenuService.targetScreenName;
+    }
+
+    readonly property bool isActive: PowerMenuService.active && isTargetScreen
+
+    readonly property var actions: [
+        {
+            "action": "lock",
+            "icon": "lock",
+            "label": qsTr("Lock screen")
+        },
+        {
+            "action": "logout",
+            "icon": "logout",
+            "label": qsTr("Log out")
+        },
+        {
+            "action": "suspend",
+            "icon": "bedtime",
+            "label": qsTr("Suspend")
+        },
+        {
+            "action": "poweroff",
+            "icon": "power_settings_new",
+            "label": qsTr("Shut down")
+        },
+        {
+            "action": "hibernate",
+            "icon": "mode_night",
+            "label": qsTr("Hibernate")
+        },
+        {
+            "action": "reboot",
+            "icon": "restart_alt",
+            "label": qsTr("Restart")
+        }
+    ]
 
     screen: targetScreen || (Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null)
     property int x: targetScreen && targetScreen.geometry ? targetScreen.geometry.x : 0
@@ -25,26 +62,22 @@ PanelWindow {
     implicitWidth: targetScreen && targetScreen.geometry ? targetScreen.geometry.width : 1920
     implicitHeight: targetScreen && targetScreen.geometry ? targetScreen.geometry.height : 1080
 
-    visible: root.isActive
+    // Persistent mapping under Mutter X11 to avoid compositor recreate/unmap failures.
+    visible: true
     color: "transparent"
     exclusiveZone: 0
-    WlrLayershell.namespace: "clavis-shell-power-menu"
-    WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.exclusionMode: ExclusionMode.Ignore
-    WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+
+    // WlrLayershell attached properties break window attachment under Mutter XCB.
+    // WlrLayershell.namespace: "clavis-shell-power-menu"
+    // WlrLayershell.layer: WlrLayer.Overlay
+    // WlrLayershell.exclusionMode: ExclusionMode.Ignore
+    // WlrLayershell.keyboardFocus: root.isActive ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
     anchors {
         left: true
         right: true
         top: true
         bottom: true
-    }
-
-    onVisibleChanged: {
-        if (visible) {
-            root.selectedIndex = 0;
-            interactionArea.forceActiveFocus(Qt.OtherFocusReason);
-        }
     }
 
     Item {
@@ -54,24 +87,62 @@ PanelWindow {
     }
 
     Item {
+        id: fullInteractionRegion
+        anchors.fill: parent
+    }
+
+    mask: Region {
+        item: root.isActive ? fullInteractionRegion : emptyMaskRegion
+    }
+
+    Connections {
+        target: root
+        function onIsActiveChanged() {
+            if (root.isActive) {
+                root.selectedIndex = 0;
+                Qt.callLater(() => {
+                    interactionArea.forceActiveFocus(Qt.OtherFocusReason);
+                });
+            }
+        }
+    }
+
+    Shortcut {
+        sequence: "Esc"
+        enabled: root.isActive
+        onActivated: PowerMenuService.close()
+    }
+
+    Item {
         id: interactionArea
 
         anchors.fill: parent
-        focus: root.visible
+        focus: root.isActive
+        opacity: root.isActive ? 1.0 : 0.0
+        visible: opacity > 0.001
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Appearance.animation.expressiveFastEffects.duration
+                easing.type: Appearance.animation.expressiveFastEffects.type
+                easing.bezierCurve: Appearance.animation.expressiveFastEffects.bezierCurve
+            }
+        }
+
         Keys.onPressed: event => {
             switch (event.key) {
             case Qt.Key_Left:
             case Qt.Key_Up:
-                root.selectedIndex = (root.selectedIndex + actionRepeater.count - 1) % actionRepeater.count;
+                root.selectedIndex = (root.selectedIndex + root.actions.length - 1) % root.actions.length;
                 break;
             case Qt.Key_Right:
             case Qt.Key_Down:
-                root.selectedIndex = (root.selectedIndex + 1) % actionRepeater.count;
+                root.selectedIndex = (root.selectedIndex + 1) % root.actions.length;
                 break;
             case Qt.Key_Return:
             case Qt.Key_Enter:
-                if (!event.isAutoRepeat)
-                    PowerMenuService.trigger(actionRepeater.itemAt(root.selectedIndex).modelData.action);
+                if (!event.isAutoRepeat && root.selectedIndex >= 0 && root.selectedIndex < root.actions.length)
+                    PowerMenuService.trigger(root.actions[root.selectedIndex].action);
                 break;
             case Qt.Key_Escape:
                 PowerMenuService.close();
@@ -100,10 +171,16 @@ PanelWindow {
             event.accepted = true;
         }
 
-        MouseArea {
+        // Dim backdrop / scrim
+        Rectangle {
             anchors.fill: parent
-            cursorShape: Qt.ArrowCursor
-            onClicked: PowerMenuService.close()
+            color: Appearance.colors.colScrim
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.ArrowCursor
+                onClicked: PowerMenuService.close()
+            }
         }
 
         Rectangle {
@@ -114,6 +191,15 @@ PanelWindow {
             height: actionRow.implicitHeight + 56
             radius: Appearance.rounding.extraLarge
             color: BlurService.backgroundColor(Appearance.colors.colLayer0)
+
+            scale: root.isActive ? 1.0 : 0.95
+            Behavior on scale {
+                NumberAnimation {
+                    duration: Appearance.animation.expressiveFastEffects.duration
+                    easing.type: Appearance.animation.expressiveFastEffects.type
+                    easing.bezierCurve: Appearance.animation.expressiveFastEffects.bezierCurve
+                }
+            }
 
             MouseArea {
                 anchors.fill: parent
@@ -128,38 +214,7 @@ PanelWindow {
 
                 Repeater {
                     id: actionRepeater
-                    model: [
-                        {
-                            "action": "lock",
-                            "icon": "lock",
-                            "label": qsTr("Lock screen")
-                        },
-                        {
-                            "action": "logout",
-                            "icon": "logout",
-                            "label": qsTr("Log out")
-                        },
-                        {
-                            "action": "suspend",
-                            "icon": "bedtime",
-                            "label": qsTr("Suspend")
-                        },
-                        {
-                            "action": "poweroff",
-                            "icon": "power_settings_new",
-                            "label": qsTr("Shut down")
-                        },
-                        {
-                            "action": "hibernate",
-                            "icon": "mode_night",
-                            "label": qsTr("Hibernate")
-                        },
-                        {
-                            "action": "reboot",
-                            "icon": "restart_alt",
-                            "label": qsTr("Restart")
-                        }
-                    ]
+                    model: root.actions
 
                     delegate: Rectangle {
                         id: actionButton
@@ -265,9 +320,5 @@ PanelWindow {
             backgroundItem: menuBackground
             radius: menuBackground.radius
         }
-    }
-
-    mask: Region {
-        item: root.visible ? interactionArea : emptyMaskRegion
     }
 }

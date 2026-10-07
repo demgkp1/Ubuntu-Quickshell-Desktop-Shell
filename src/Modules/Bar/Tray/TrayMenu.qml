@@ -89,11 +89,11 @@ PopupWindow {
         visible: root.visible && ThemeService.isNiriSession
         screen: root.screen
         color: "transparent"
-        exclusiveZone: 0
-        WlrLayershell.layer: root.anchorItem && root.anchorItem.QsWindow.window
-                             ? root.anchorItem.QsWindow.window.WlrLayershell.layer : WlrLayer.Top
-        WlrLayershell.namespace: "clavis-shell-tray-menu-backdrop"
-        WlrLayershell.exclusionMode: ExclusionMode.Ignore
+        // WlrLayershell attached properties break window attachment under Mutter XCB.
+        // WlrLayershell.layer: root.anchorItem && root.anchorItem.QsWindow.window
+        //                      ? root.anchorItem.QsWindow.window.WlrLayershell.layer : WlrLayer.Top
+        // WlrLayershell.namespace: "clavis-shell-tray-menu-backdrop"
+        // WlrLayershell.exclusionMode: ExclusionMode.Ignore
 
         anchors {
             top: true

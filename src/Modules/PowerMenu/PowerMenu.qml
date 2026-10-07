@@ -1,20 +1,13 @@
 import QtQuick
 import Quickshell
 
-Scope {
-    Variants {
-        model: Quickshell.screens
+Variants {
+    id: variants
 
-        delegate: Loader {
-            id: powerMenuLoader
+    model: Quickshell.screens
 
-            required property var modelData
-
-            active: true
-
-            sourceComponent: PowerMenuWindow {
-                targetScreen: powerMenuLoader.modelData
-            }
-        }
+    PowerMenuWindow {
+        required property var modelData
+        targetScreen: modelData
     }
 }

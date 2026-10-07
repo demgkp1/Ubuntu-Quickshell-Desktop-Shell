@@ -17,9 +17,9 @@ Variants {
         color: "transparent"
         visible: PersonalizationConfig.overviewEnabled
 
-        WlrLayershell.layer: WlrLayer.Background
-        WlrLayershell.namespace: "clavis-overview-wallpaper"
-        WlrLayershell.exclusionMode: ExclusionMode.Ignore
+        // WlrLayershell.layer: WlrLayer.Background
+        // WlrLayershell.namespace: "clavis-overview-wallpaper"
+        // WlrLayershell.exclusionMode: ExclusionMode.Ignore
 
         anchors.top: true
         anchors.bottom: true

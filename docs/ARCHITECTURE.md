@@ -290,6 +290,23 @@ flowchart TD
   property int y: screen && screen.geometry ? screen.geometry.y : 0 // 精确咬合物理顶边 y: 0
   ```
 
+#### (4) 电源菜单宿主：`PowerMenuWindow.qml`
+- **定位**：全屏模态居中会话管理中枢（锁定、注销、待机、关机、休眠、重启）；
+- **Mutter XCB 适配与遮罩穿透机制**：
+  ```qml
+  visible: true // 保持常驻映射，绝不在 X11 下动态 Map/Unmap
+  color: "transparent"
+  exclusiveZone: 0
+  // 必须注释所有 WlrLayershell.* 附加属性，杜绝 Mutter XCB 附加属性报错与崩溃
+
+  mask: Region {
+      // 激活时捕获全屏事件并呈现半透明遮罩与居中卡片，关闭时缩至 0x0 物理穿透
+      item: root.isActive ? fullInteractionRegion : emptyMaskRegion
+  }
+  ```
+- **键盘导航与焦点**：当 `isActive` 变为 `true` 时，通过 `Qt.callLater` 强聚焦交互区域，支持方向键、Enter、Esc 及一键直达按键（L/E/U/S/H/R）；
+- **系统后端绑定**：通过 IPC 及 `PowerMenuService.trigger()` 调用真实 Linux 后端（`loginctl lock-session`、`gnome-session-quit`、`systemctl`）。
+
 ---
 
 ### 4. 后续 Agent 验收铁律

@@ -13,13 +13,10 @@ Singleton {
     signal actionRequested(string action)
 
     function open(screen) {
-        console.log("PowerMenuService.open requested");
-        screen = screen || (Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null);
-        if (!screen || !screen.name)
-            return false;
-
+        console.log("PowerMenuService.open requested:", screen);
+        const resolved = screen || (Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null);
         WidgetState.closeAllPopups();
-        targetScreenName = screen.name;
+        targetScreenName = (resolved && resolved.name) ? String(resolved.name) : "";
         active = true;
         return true;
     }

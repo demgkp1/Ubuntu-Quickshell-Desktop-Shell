@@ -16,10 +16,9 @@ Item {
             screen: modelData
             visible: DisplayConfigService.identify
             color: "transparent"
-            exclusionMode: ExclusionMode.Ignore
-            WlrLayershell.namespace: "clavis-display-identify"
-            WlrLayershell.layer: WlrLayer.Overlay
-            WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+            // WlrLayershell.namespace: "clavis-display-identify"
+            // WlrLayershell.layer: WlrLayer.Overlay
+            // WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
             anchors {
                 top: true
                 bottom: true
@@ -70,10 +69,9 @@ Item {
         screen: Quickshell.screens.length ? Quickshell.screens[0] : null
         visible: DisplayConfigService.confirming
         color: "transparent"
-        exclusionMode: ExclusionMode.Ignore
-        WlrLayershell.namespace: "clavis-shell-display-confirmation"
-        WlrLayershell.layer: WlrLayer.Overlay
-        WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
+        // WlrLayershell.namespace: "clavis-shell-display-confirmation"
+        // WlrLayershell.layer: WlrLayer.Overlay
+        // WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
         implicitWidth: Math.min(440, screen ? screen.width : 440)
         implicitHeight: content.implicitHeight + Metrics.spacingXL * 2
         CompositorBlurRegion {

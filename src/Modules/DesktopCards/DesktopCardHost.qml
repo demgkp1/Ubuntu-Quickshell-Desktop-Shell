@@ -217,9 +217,10 @@ Variants {
         visible: true
         color: "transparent"
         exclusiveZone: 0
-        WlrLayershell.layer: WlrLayer.Bottom
-        WlrLayershell.namespace: "clavis-desktop-cards"
-        WlrLayershell.exclusionMode: ExclusionMode.Ignore
+        // WlrLayershell attached properties break window attachment under Mutter XCB.
+        // WlrLayershell.layer: WlrLayer.Bottom
+        // WlrLayershell.namespace: "clavis-desktop-cards"
+        // WlrLayershell.exclusionMode: ExclusionMode.Ignore
         onDesktopIdsChanged: window.scheduleDesktopLayout("desktop-cards-changed")
         onWidthChanged: window.scheduleDesktopLayout("screen-geometry-changed")
         onHeightChanged: window.scheduleDesktopLayout("screen-geometry-changed")
