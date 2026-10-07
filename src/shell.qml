@@ -10,9 +10,11 @@ import qs.Common
 import qs.Components
 import qs.Modules.Bar
 import qs.Modules.ControlCenter
+import qs.Modules.DesktopCards
 import qs.Modules.Dock
 import qs.Modules.Keystone
 import qs.Modules.Launcher
+import qs.Modules.PowerMenu
 import qs.Modules.Sidebars
 import qs.Services
 import qs.Widgets.common
@@ -57,6 +59,11 @@ ShellRoot {
     // Keystone Dynamic Island
     Keystone {
         id: keystone
+    }
+
+    // Desktop interactive cards host
+    DesktopCardHost {
+        id: desktopCardHost
     }
 
     // Floating fluid Dock
@@ -175,6 +182,62 @@ ShellRoot {
         function close(): string {
             ControlCenterService.close();
             return "CLOSE";
+        }
+    }
+
+    // Power Menu subsystem
+    PowerMenu {
+        id: powerMenu
+    }
+
+    Connections {
+        target: PowerMenuService
+        function onActionRequested(action) {
+            console.log("[PowerMenu] Action requested:", action);
+            switch (action) {
+            case "lock":
+                Quickshell.execDetached(["loginctl", "lock-session"]);
+                break;
+            case "logout":
+                Quickshell.execDetached(["gnome-session-quit", "--logout", "--no-prompt"]);
+                break;
+            case "suspend":
+                Quickshell.execDetached(["systemctl", "suspend"]);
+                break;
+            case "poweroff":
+                Quickshell.execDetached(["systemctl", "poweroff"]);
+                break;
+            case "hibernate":
+                Quickshell.execDetached(["systemctl", "hibernate"]);
+                break;
+            case "reboot":
+                Quickshell.execDetached(["systemctl", "reboot"]);
+                break;
+            }
+        }
+    }
+
+    IpcHandler {
+        target: "powermenu"
+
+        function open(): string {
+            PowerMenuService.open();
+            return "OPEN";
+        }
+
+        function toggle(): string {
+            PowerMenuService.toggle();
+            return "TOGGLE";
+        }
+
+        function close(): string {
+            PowerMenuService.close();
+            return "CLOSE";
+        }
+
+        function trigger(action: string): string {
+            PowerMenuService.trigger(action || "");
+            return String(action).toUpperCase();
         }
     }
 

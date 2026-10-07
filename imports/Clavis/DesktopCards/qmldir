@@ -1,0 +1,2 @@
+module Clavis.DesktopCards
+singleton WallpaperAnalyzer 1.0 WallpaperAnalyzer.qml

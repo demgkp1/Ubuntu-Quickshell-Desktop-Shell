@@ -30,4 +30,10 @@ QtObject {
     function closeWindow(id) {}
     function toggleOverview() {}
     function focusWindow(id) {}
+    function workspacesForOutput(outputName) {
+        return [];
+    }
+    function activeWorkspaceForOutput(outputName) {
+        return null;
+    }
 }

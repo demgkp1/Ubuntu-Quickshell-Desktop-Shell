@@ -62,6 +62,52 @@ Singleton {
         return "AspectCrop";
     }
 
+    function qtFillMode(modeName) {
+        switch (modeName) {
+        case "Stretch":
+            return Image.Stretch;
+        case "Fit":
+        case "PreserveAspectFit":
+            return Image.PreserveAspectFit;
+        case "Fill":
+        case "PreserveAspectCrop":
+        case "panorama":
+            return Image.PreserveAspectCrop;
+        case "Tile":
+            return Image.Tile;
+        case "TileVertically":
+            return Image.TileVertically;
+        case "TileHorizontally":
+            return Image.TileHorizontally;
+        case "Pad":
+            return Image.Pad;
+        default:
+            return Image.PreserveAspectCrop;
+        }
+    }
+
+    function shaderFillMode(modeName) {
+        switch (modeName) {
+        case "Stretch":
+            return 0;
+        case "Fit":
+        case "PreserveAspectFit":
+            return 1;
+        case "Fill":
+        case "PreserveAspectCrop":
+        case "panorama":
+            return 2;
+        case "Tile":
+        case "TileVertically":
+        case "TileHorizontally":
+            return 3;
+        case "Pad":
+            return 4;
+        default:
+            return 2;
+        }
+    }
+
     function refresh() {
         gsettingsDarkProc.running = true;
     }
