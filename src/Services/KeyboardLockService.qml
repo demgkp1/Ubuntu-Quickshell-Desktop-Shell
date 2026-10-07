@@ -83,7 +83,10 @@ Singleton {
         stdout: SplitParser {
             onRead: data => root.consume(data)
         }
-        onExited: {
+        onExited: exitCode => {
+            if (exitCode < 0 || exitCode === 127 || exitCode === 255) {
+                root._reconnectAttempts = 3;
+            }
             const retry = root._reconnectAttempts < 3;
             root.unavailable(root.error ? root.error.code : "keyboard_backend_disconnected", root.error ? root.error.message :
                                                                                                           "Keyboard backend exited",

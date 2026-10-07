@@ -21,7 +21,7 @@ PanelWindow {
     implicitWidth: root.screen && root.screen.geometry ? root.screen.geometry.width : (root.screen ? root.screen.width : 1920)
     implicitHeight: Sizes.barVisualThickness + Sizes.barOuterEdgeMargin + Sizes.barShadowBuffer
     color: "transparent"
-    exclusiveZone: PersonalizationConfig.barOverlay ? 0 : exclusiveThickness
+    exclusiveZone: 0
     // WlrLayershell attached properties suppress X11 _NET_WM_STRUT under Mutter XCB,
     // which causes Mutter to center the bar at Y: 532 instead of docking at Y: 0.
     // WlrLayershell.layer: WlrLayer.Top

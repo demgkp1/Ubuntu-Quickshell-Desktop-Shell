@@ -56,8 +56,8 @@ flowchart TD
 | :--- | :--- | :--- | :--- |
 | **`AssetTokensPorter`** | 基石资产移植专家 | `src/Common/`、`src/assets/` | 负责设计系统令牌（Appearance、Metrics、Typography）与字体 Shader 1:1 克隆。**红线：严禁篡改原版配色算法**。 |
 | **`ComponentPorter`** | 基础矢量控件专家 | `src/Components/`、`src/Widgets/` | 负责基础矢量按键、双轨滑块、输入框的 1:1 克隆。**红线：强制检查并锁定 `ArrowCursor`，杜绝光标形变**。 |
-| **`ViewModulePorter`** | 原装视图装配专家 | `src/Modules/*`、`src/shell.qml` | 负责顶栏、控制中心、抽屉的原生视图组装与宿主挂载。**红线：严禁自创手写私有窗口外壳，必须 1:1 复刻上游窗口声明**。 |
-| **`ServiceAdapter`** | 纯系统通信适配专家 | `src/Services/*` | 负责打桩 Mock 数据与对接真实 GNOME DBus、PipeWire、NetworkManager。**红线：绝对不准触碰任何 UI 文件**。 |
+| **`ViewModulePorter`** | 原装视图装配专家 | `src/Modules/*`、`src/shell.qml` | 负责顶栏、控制中心、抽屉的原生视图组装与宿主挂载。**红线：内部 UI 与视图布局必须 1:1 复刻；但在顶层 Window 宿主与输入掩码上，必须严格执行第五节 Mutter XCB 桥接规范（禁止机械复刻 Wayland 属性导致协议冲突与性能雪崩）**。 |
+| **`ServiceAdapter`** | 纯系统通信适配专家 | `src/Services/*` | 负责打桩 Mock 数据与对接真实 GNOME DBus、PipeWire、NetworkManager。**红线：绝对不准触碰任何 UI 文件；必须具备系统命令缺失降级机制，同时严禁粗暴切断服务自愈重连**。 |
 
 ---
 
@@ -90,50 +90,99 @@ TaskCard:
 
 ---
 
-## 五、 Ubuntu GNOME Mutter 窗口宿主与几何桥接规范 (核心经验传承)
+## 五、 Ubuntu GNOME Mutter 窗口宿主与平台胶水层桥接规范 (核心经验传承)
 
 > [!CAUTION]
-> **历史严重教训**：前序 Agent 曾出现“代码全部加载通过，但用户运行 `./scripts/launch.sh` 屏幕上完全没有显示任何 UI”的严重问题。后续所有 Agent 必须铭记本规范，严防该问题重蹈覆辙！
+> **历史严重教训与“机械 1:1 陷阱”**：
+> 前序 Agent 曾反复出现三类恶性问题：
+> 1. “代码全部编译通过，但启动后屏幕上空无一物”（0x0 尺寸塌陷）；
+> 2. “机械照抄上游 Layer Shell 独占区，导致灵动岛被 Mutter 强制下压悬空 52px”；
+> 3. “机械照抄全屏透明窗口并在 X11 软渲染下动态 Map/Unmap，导致全屏事件拦截死锁、严重掉帧与内存雪崩”。
+> 
+> **最高原则：内部 UI 表现、动效参数、配色 Token 必须 100% 恪守 1:1 严禁篡改；但在顶层 Window 宿主与平台胶水层，必须严格遵循本节规范实施针对 Ubuntu X11 Mutter 的特异性适配！**
 
-### 1. 协议根因与退化机制
-- **上游环境假设**：上游 Clavis 基于支持 `wlr-layer-shell-unstable-v1` 的 Wayland 合成器（如 Niri/Hyprland），窗口（PanelWindow）通过 `WlrLayershell.layer` 和 QML `anchors` 即可由合成器自动完成物理尺寸展开；
-- **目标环境实情**：Ubuntu 24.04 LTS 默认使用 **GNOME 46 (Mutter)**，Mutter **不支持** `wlr-layer-shell`。因此 Quickshell 必须在 XCB (XWayland) 模式下以无边框、置顶的 X11 窗口运行；
-- **0x0 尺寸塌陷陷阱**：在 XCB/XWayland 下，Mutter 对 override-redirect 窗口**绝不会自动响应纯 QML anchors 进行拉伸**。若窗口未显式绑定物理尺寸，其实际 X11 窗口几何尺寸为 `0x0`，导致视觉上空无一物！
+---
 
-### 2. 双窗口宿主几何绑定铁律
-在挂载顶层窗口时，必须在保留上游内部所有控件 1:1 的前提下，为顶层宿主补充显式几何桥接：
+### 1. 协议根因与退化机理
+- **上游环境机制**：上游 Clavis 基于支持 `wlr-layer-shell-unstable-v1` 的 Wayland 合成器（如 Niri/Hyprland）。窗口（PanelWindow）通过 `WlrLayershell.layer` 和 QML `anchors` 即可由合成器自动完成物理尺寸展开，并原生支持非矩形透明穿透；
+- **目标环境实情**：Ubuntu 24.04 LTS 默认使用 **GNOME 46 (Mutter)**，Mutter **不支持** `wlr-layer-shell`。Quickshell 退化为在 XCB (X11) 模式下以 override-redirect 窗口运行，且渲染后端通常为 CPU 软渲染（`QT_QUICK_BACKEND="software"`）。
+
+---
+
+### 2. Mutter XCB 平台适配四大铁律
+
+#### 铁律一：0x0 物理几何显式绑定 (Eliminate 0x0 Collapse)
+- 在 XCB/XWayland 下，Mutter 对 override-redirect 窗口**绝不会自动响应纯 QML anchors 进行拉伸**；
+- 必须显式将 `width`、`height`、`x`、`y` 绑定至 `screen.geometry` 物理参数，杜绝几何尺寸塌陷为 `0x0`。
+
+#### 铁律二：EWMH Strut 避让与层叠并存机制 (Eliminate 52px Gap)
+- **机理**：Quickshell 在 X11 下将 `exclusiveZone: 52` 转译为 `_NET_WM_STRUT_PARTIAL`，Mutter 会把桌面工作区（`_NET_WORKAREA`）全局下推 52px，导致后续创建的贴顶窗口（如 Keystone 灵动岛）被强行下压到 `y = 52` 产生悬空断层；
+- **规范**：当顶部存在横向顶栏与中央灵动岛多层并存时，`HorizontalBarWindow.qml` 必须显式设定 `exclusiveZone: 0`（或浮动覆盖模式），确保灵动岛等浮层能够严丝合缝贴紧物理顶边 `y: 0`。
+
+#### 铁律三：全屏宿主常驻映射与 XShape 物理裁剪法则 (Anti-Freeze & Anti-Leak)
+- **机理**：
+  1. 在 X11 软渲染下，全屏透明宿主窗口**严禁动态切换 `visible`（动态 Map/Unmap）**！动态映射会导致 XServer 重新分配 2048x1100 显存/内存 Backing Store，并迫使 `CompositorBlurRegion` 同步执行全屏抓图（`XGetImage`），引发瞬间数秒的致命卡死并拖垮系统其他进程；
+  2. 在 X11 下，`mask: Region` 若被传入 `null`，XShape 会失效并默认捕获全屏事件，造成全屏事件死锁。
+- **规范**：
+  - 侧栏全屏宿主窗口必须保持常驻映射（`visible: true` 保证生命周期稳定）；
+  - 收起不可见时，必须向 `mask: Region` 提供显式的 `0x0` 空白 Item（如 `emptyMaskRegion`），利用 XShape 物理“挖空”事件接收区，既实现零开销事件穿透，又消除重映射的性能雪崩。
+
+#### 铁律四：守护进程缺失防御与崩溃自愈韧性法则 (Daemon Resilience)
+- **机理**：上游 QML 强依赖专属 CLI 二进制（如 `key`）。在缺失该命令的宿主环境下，进程启动即失败并触发重试定时器，引发无限重试风暴锁死 QML 事件队列；但若粗暴以 `exitCode !== 0` 中断重连，会彻底破坏正常运行时崩溃后的自愈重连。
+- **规范**：
+  - 拦截退出码必须精准判定启动失败：`if (exitCode < 0 || exitCode === 127 || exitCode === 255)`；
+  - 仅在明确命令不存在或无法执行时停止重试，严禁破坏正常的崩溃恢复循环。
+
+---
+
+### 3. 多宿主窗口显式桥接规范
 
 #### (1) 顶栏宿主 (`HorizontalBarWindow.qml`)
-- **角色定位**：常驻桌面顶部的视觉中枢，也是触发快捷设置与侧边栏的交互入口；
-- **几何桥接规则**：
-  ```qml
-  // 必须显式绑定目标屏幕的物理几何尺寸
-  screen: Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
-  x: root.screen ? root.screen.geometry.x : 0
-  y: root.screen ? root.screen.geometry.y : 0
-  width: root.screen ? root.screen.geometry.width : 1920
-  height: Sizes.barVisualThickness + Sizes.barOuterEdgeMargin
-  ```
-- **可见性保证**：启动后必须立即可见，为用户提供桌面基准锚点。
+```qml
+screen: Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+x: root.screen && root.screen.geometry ? root.screen.geometry.x : 0
+y: root.screen && root.screen.geometry ? root.screen.geometry.y : 0
+width: root.screen && root.screen.geometry ? root.screen.geometry.width : 1920
+height: Sizes.barVisualThickness + Sizes.barOuterEdgeMargin
+exclusiveZone: 0 // 消除 EWMH Strut 对灵动岛的 52px 挤压
+```
 
-#### (2) 侧栏宿主 (`SidebarHostWindow.qml`)
-- **角色定位**：覆盖整个屏幕的透明捕获层，承载右侧滑出的 `QuickSettingsSidebar` 与左侧的 `DashboardSidebar`；
-- **几何桥接规则**：
-  ```qml
-  // 必须显式铺满整个屏幕，使内部 EdgeRevealSurface 具备正确的基准宽度，且 MouseArea 能全屏捕获空白点击
-  x: root.screen ? root.screen.geometry.x : 0
-  y: root.screen ? root.screen.geometry.y : 0
-  width: root.screen ? root.screen.geometry.width : 1920
-  height: root.screen ? root.screen.geometry.height : 1080
-  ```
-- **边缘抽屉联动**：
-  - 默认情况下抽屉收起（`open: false`），抽屉处于屏幕外（偏移 `width`）；
-  - 点击顶栏上的快捷设置按钮时，触发 `WidgetState.quickSettingsOpen = !WidgetState.quickSettingsOpen`，抽屉向内平滑滑出；
-  - 点击空白区域或按 ESC 触发收起，抽屉向外平滑滑出。
+#### (2) 侧栏全屏宿主 (`SidebarHostWindow.qml`)
+```qml
+screen: Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+x: root.screen && root.screen.geometry ? root.screen.geometry.x : 0
+y: root.screen && root.screen.geometry ? root.screen.geometry.y : 0
+width: root.screen && root.screen.geometry ? root.screen.geometry.width : 1920
+height: root.screen && root.screen.geometry ? root.screen.geometry.height : 1080
+visible: retainedScreen !== null || fallbackScreen !== null // 保持常驻映射，杜绝动态 Map 性能雪崩
 
-### 3. Agent 验收红线
-所有参与视图移植的 Agent（特别是 `ViewModulePorter`）：
-- **绝对不准仅以终端输出 `Configuration Loaded` 作为交付依据**；
-- 每次交付前，必须核查顶层窗口的 `width` 与 `height` 是否在运行时大于 0；
-- 必须确保用户执行 `./scripts/launch.sh` 后，能够直接在屏幕上看到顶栏和抽屉动画。
+Item {
+    id: emptyMaskRegion
+    width: 0
+    height: 0
+}
+
+mask: Region {
+    // 激活时捕获全屏点击用以关闭，收起时精准收缩为 0x0 物理穿透
+    item: root.anySidebarOpen ? interactionRegion : emptyMaskRegion
+}
+```
+
+#### (3) 灵动岛宿主 (`KeystoneSurface.qml`)
+```qml
+screen: Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+property int x: screen && screen.geometry ? screen.geometry.x : 0
+property int y: screen && screen.geometry ? screen.geometry.y : 0 // 物理精确锁定顶边 y: 0
+```
+
+---
+
+### 4. Agent 验收硬指标 (Gatekeeper)
+所有参与视图移植的 Agent：
+1. **禁止静态臆测**：绝对不准仅以终端输出 `Configuration Loaded` 作为交付依据；
+2. **几何与坐标核验**：启动后必须使用 `xwininfo -root -tree` 验证所有顶层窗口 `width > 0`、`height > 0` 且坐标无漂移；
+3. **真机交互验证**：必须亲眼验证用户运行 `./scripts/launch.sh` 后：
+   - 顶栏与灵动岛无缝贴合物理顶边（0 像素缝隙）；
+   - 呼出与收起控制中心顺滑无卡顿，桌面其他应用点击正常不受阻；
+   - 进程列表中无 `key` 等死循环子进程。
 

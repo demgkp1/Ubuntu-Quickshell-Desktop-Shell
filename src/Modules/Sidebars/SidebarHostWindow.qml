@@ -142,8 +142,14 @@ PanelWindow {
         }
     }
 
+    Item {
+        id: emptyMaskRegion
+        width: 0
+        height: 0
+    }
+
     mask: Region {
-        item: root.anySidebarOpen ? interactionRegion : null
+        item: root.anySidebarOpen ? interactionRegion : emptyMaskRegion
 
         HotCornerExclusionRegion {
             surfaceWidth: root.width

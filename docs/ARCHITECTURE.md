@@ -121,11 +121,12 @@ sequenceDiagram
 
 | 差异属性 | 判定基准 | 裁决动作 |
 | :--- | :--- | :--- |
-| **✅ 合法：跨机器自适应扩展** | 补充动态探测、容错判断，使程序能在不同机器（台式机/笔记本/有线/无线）上无缝运转。 | **批准保留** |
-| **✅ 合法：合成器/系统通道适配** | 适配 Ubuntu GNOME Mutter（XWayland/XCB 顶层窗口、DBus 通信），替代原版 Niri 特有 IPC。 | **批准保留** |
+| **✅ 合法：跨机器硬件自适应** | 补充动态探测、容错判断，使程序能在不同机器（台式机/笔记本/有线/无线）上无缝运转。 | **批准保留** |
+| **✅ 合法：窗口宿主与合成器桥接** | 针对 Ubuntu GNOME Mutter X11 的特异性适配（显式几何绑定、`exclusiveZone: 0` 消除 Strut 挤压、常驻映射 + `0x0` XShape 裁剪杜绝卡死）。严禁机械照搬 Wayland 专有属性！ | **强制执行** |
+| **✅ 合法：系统守护进程韧性防御** | 针对 Ubuntu 缺失上游私有 CLI 二进制（如 `key`）的优雅降级；同时必须保留运行时崩溃自愈机制。 | **强制执行** |
 | **✅ 合法：系统原生光标锁定** | 必须严格保持系统原生 Yaru 箭头光标（`cursorShape: Qt.ArrowCursor`），杜绝手型形变。 | **强制执行** |
 | **❌ 违规：审美与排版自作主张** | 擅自调整内边距（padding）、外边距（margins）、圆角（radius）、颜色值、字体比例。 | **一票否决，立即回退** |
-| **❌ 违规：结构与功能魔改** | 擅自手写私有包装窗口、拼凑非上游控件、注入全局 XGrabKey 等破坏性脚本。 | **一票否决，立即回退** |
+| **❌ 违规：结构与功能魔改** | 擅自手写私有包装窗口、拼凑非上游控件、注入破坏性全局 Hook 脚本。 | **一票否决，立即回退** |
 
 ---
 
@@ -187,16 +188,46 @@ timeline
 
 ---
 
-## 九、 Ubuntu GNOME 46 Mutter 窗口宿主与几何桥接规范 (Mutter Window Hosting Bridge)
+## 九、 Ubuntu GNOME 46 Mutter 窗口宿主与平台胶水层规范 (Mutter Window Hosting Bridge)
 
 ### 1. 合成器协议鸿沟与 XCB 退化机理
-- **原版运行机制**：原版 Clavis 基于支持 `wlr-layer-shell-unstable-v1` 协议的 Wayland 合成器（如 Niri/Hyprland）。在这些合成器中，Quickshell 的 `PanelWindow` 作为 Layer Surface 直接与合成器通信，合成器自动解析 QML `anchors` 并完成全屏或边缘贴靠；
-- **Ubuntu 目标环境**：Ubuntu 24.04 默认使用 **GNOME 46 (Mutter)**。Mutter 原生不支持 `wlr-layer-shell` 协议。Quickshell 在检测到环境时，退化为通过 `QT_QPA_PLATFORM="xcb"`（XWayland）以无边框、置顶的 override-redirect X11 窗口运行；
-- **关键陷阱：0x0 几何塌陷**：
-  - 在 XCB 模式下，Mutter 绝不会根据 QML anchors 自动拉伸未受管理的 override-redirect 窗口；
-  - 若窗口未显式绑定物理像素宽高（`width` / `height`），其实际 X11 窗口几何尺寸将沦为 `0x0`，造成“后台进程显示运行正常，但屏幕上没有任何 UI”的致命现象。
+- **原版运行机制**：原版 Clavis 基于支持 `wlr-layer-shell-unstable-v1` 协议的 Wayland 合成器（如 Niri/Hyprland）。在这些合成器中，Quickshell 的 `PanelWindow` 作为 Layer Surface 直接与合成器通信，合成器自动解析 QML `anchors` 并完成全屏或边缘贴靠，原生支持非矩形输入穿透，且全局运行在 GPU 硬件加速管线上；
+- **Ubuntu 目标环境**：Ubuntu 24.04 默认使用 **GNOME 46 (Mutter)**。Mutter 原生不支持 `wlr-layer-shell` 协议。Quickshell 在检测到环境时，退化为通过 `QT_QPA_PLATFORM="xcb"`（X11）以无边框、置顶的 override-redirect 窗口运行，且通常运行在 CPU 软渲染模式（`QT_QUICK_BACKEND="software"`）；
+- **核心认知更新：规避“机械 1:1 陷阱”**：
+  > [!IMPORTANT]
+  > **“1:1 移植”指的是 UI 视觉、排版 Token、组件层级与动效参数的 100% 镜像克隆；绝不等于对底层 Window 宿主与系统守护通信代码的盲目照抄！**
+  > 若将 Wayland 特有的独占层逻辑与全屏透明机制机械复制到 X11 下，会导致严重的协议冲突、桌面卡死与性能雪崩。
 
-### 2. 双宿主窗口显式几何规范 (Dual Window Hosting Specification)
+---
+
+### 2. Mutter XCB 平台适配四大铁律
+
+#### 铁律一：0x0 物理几何显式绑定 (Eliminate 0x0 Collapse)
+- 在 XCB/XWayland 下，Mutter 绝不会根据 QML anchors 自动拉伸未受管理的 override-redirect 窗口；
+- 若窗口未显式绑定物理像素宽高（`width` / `height`），其实际 X11 窗口几何尺寸将沦为 `0x0`，导致视觉上空无一物；
+- **规范**：必须在最外层 Window 显式将尺寸绑定至 `screen.geometry` 物理参数。
+
+#### 铁律二：EWMH Strut 避让与层叠并存机制 (Eliminate 52px Gap)
+- **机理**：Quickshell 在 X11 下将 `exclusiveZone: 52` 转译为 EWMH 协议的 `_NET_WM_STRUT_PARTIAL`，Mutter 会把桌面工作区（`_NET_WORKAREA`）全局下推 52px，导致后续创建的贴顶窗口（如 Keystone 灵动岛）被强行下压到 `y = 52`，上方暴露整整 52 像素黑边；
+- **规范**：当顶部存在横向顶栏与中央灵动岛多层并存时，`HorizontalBarWindow.qml` 必须显式设定 `exclusiveZone: 0`（或开启浮动覆盖模式），确保灵动岛等浮层能够严丝合缝咬合在显示器物理顶边 `y: 0`。
+
+#### 铁律三：全屏宿主常驻映射与 XShape 物理裁剪法则 (Anti-Freeze & Anti-Leak)
+- **机理**：
+  1. 在 X11 软渲染下，全屏透明宿主窗口**严禁动态切换 `visible`（动态 Map/Unmap）**！动态映射会导致 XServer 重新分配 2048x1100 显存/内存 Backing Store，并迫使 `CompositorBlurRegion` 同步执行全屏抓图（`XGetImage`），引发瞬间数秒的致命卡死并拖垮系统其他进程；
+  2. 在 X11 下，`mask: Region` 若被传入 `null`，XShape 会失效并默认捕获全屏事件，造成全屏事件死锁。
+- **规范**：
+  - 侧栏全屏宿主窗口必须保持常驻映射（`visible: true` 保证生命周期稳定）；
+  - 收起不可见时，必须向 `mask: Region` 提供显式的 `0x0` 空白 Item（如 `emptyMaskRegion`），利用 XShape 物理“挖空”事件接收区，既实现零开销事件穿透，又消除重映射的性能雪崩。
+
+#### 铁律四：守护进程缺失防御与崩溃自愈韧性法则 (Daemon Resilience)
+- **机理**：上游 QML 强依赖专属 CLI 二进制（如 `key`）。在缺失该命令的宿主环境下，进程启动即失败并触发重试定时器，引发无限重试风暴锁死 QML 事件队列；但若粗暴以 `exitCode !== 0` 中断重连，会彻底破坏正常运行时崩溃后的自愈重连。
+- **规范**：
+  - 拦截退出码必须精准判定启动失败：`if (exitCode < 0 || exitCode === 127 || exitCode === 255)`；
+  - 仅在明确命令不存在或无法执行时停止重试，严禁破坏正常的崩溃恢复循环。
+
+---
+
+### 3. 多宿主窗口显式几何规范 (Multi-Window Hosting Specification)
 
 本项目坚持“**内部控件 100% 镜像，仅在最外层顶层 Window 宿主实施物理几何桥接**”原则：
 
@@ -207,51 +238,60 @@ flowchart TD
     subgraph HostWindows [GNOME Mutter 顶层宿主窗口]
         BarWin["HorizontalBarWindow (常驻顶栏)"]
         SidebarWin["SidebarHostWindow (全屏透明捕获层)"]
+        KeystoneWin["KeystoneSurface (灵动岛宿主)"]
     end
     
-    Screen -->|"显式绑定 width: screen.geometry.width, height: barThickness"| BarWin
-    Screen -->|"显式绑定 width: screen.geometry.width, height: screen.geometry.height"| SidebarWin
-    
-    subgraph UI_Modules [1:1 原装 UI 模块 (内部 0 篡改)]
-        BarPill["TopBar 药丸胶囊 & 控制中心触发按钮"]
-        RevealSurface["EdgeRevealSurface (边缘抽屉)"]
-        QSView["QuickSettingsSurface (原装控制中心卡片)"]
-    end
-    
-    BarWin --> BarPill
-    BarPill -->|"点击触发: WidgetState.quickSettingsOpen = true"| SidebarWin
-    SidebarWin --> RevealSurface
-    RevealSurface --> QSView
+    Screen -->|"显式绑定 width: screen.geometry.width, exclusiveZone: 0"| BarWin
+    Screen -->|"显式绑定 width/height, visible: true, emptyMaskRegion 裁剪"| SidebarWin
+    Screen -->|"显式绑定 y: screen.geometry.y (0), 贴顶置顶"| KeystoneWin
 ```
 
 #### (1) 顶栏宿主：`HorizontalBarWindow.qml`
 - **定位**：常驻桌面顶部，提供时间、状态胶囊与快捷设置入口；
-- **几何要求**：
+- **几何与协议规范**：
   ```qml
   screen: Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
-  x: root.screen ? root.screen.geometry.x : 0
-  y: root.screen ? root.screen.geometry.y : 0
-  width: root.screen ? root.screen.geometry.width : 1920
+  x: root.screen && root.screen.geometry ? root.screen.geometry.x : 0
+  y: root.screen && root.screen.geometry ? root.screen.geometry.y : 0
+  width: root.screen && root.screen.geometry ? root.screen.geometry.width : 1920
   height: Sizes.barVisualThickness + Sizes.barOuterEdgeMargin
+  exclusiveZone: 0 // 消除 EWMH Strut 对灵动岛的 52px 挤压
   ```
-- 保证启动后立即可见，用户可以直接点击顶栏右侧的胶囊。
 
 #### (2) 侧栏宿主：`SidebarHostWindow.qml`
 - **定位**：覆盖整个屏幕的透明捕获层；
+- **几何与输入掩码规范**：
+  ```qml
+  screen: Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+  x: root.screen && root.screen.geometry ? root.screen.geometry.x : 0
+  y: root.screen && root.screen.geometry ? root.screen.geometry.y : 0
+  width: root.screen && root.screen.geometry ? root.screen.geometry.width : 1920
+  height: root.screen && root.screen.geometry ? root.screen.geometry.height : 1080
+  visible: retainedScreen !== null || fallbackScreen !== null // 保持常驻映射，杜绝动态 Map 性能雪崩
+
+  Item {
+      id: emptyMaskRegion
+      width: 0
+      height: 0
+  }
+
+  mask: Region {
+      // 激活时捕获全屏点击用以关闭，收起时精准收缩为 0x0 物理穿透
+      item: root.anySidebarOpen ? interactionRegion : emptyMaskRegion
+  }
+  ```
+
+#### (3) 灵动岛宿主：`KeystoneSurface.qml`
+- **定位**：顶部居中交互中枢；
 - **几何要求**：
   ```qml
   screen: Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
-  x: root.screen ? root.screen.geometry.x : 0
-  y: root.screen ? root.screen.geometry.y : 0
-  width: root.screen ? root.screen.geometry.width : 1920
-  height: root.screen ? root.screen.geometry.height : 1080
+  property int x: screen && screen.geometry ? screen.geometry.x : 0
+  property int y: screen && screen.geometry ? screen.geometry.y : 0 // 精确咬合物理顶边 y: 0
   ```
-- **交互收起机制**：
-  - 背景为全透明 `color: "transparent"`；
-  - 只有当 `WidgetState.quickSettingsOpen == true` 时，右侧的 `QuickSettingsSidebar` 抽屉才向内平滑滑出；
-  - 点击非抽屉的空白屏幕区域，MouseArea 捕获点击并设置 `WidgetState.quickSettingsOpen = false`，抽屉向外平滑滑出；
-  - 按下键盘 `Esc` 键时，全局 Shortcut 触发关闭。
 
-### 3. 后续 Agent 验收铁律
-所有 Agent 必须谨记：**凡是交付涉及窗口渲染的任务，必须实际运行 `./scripts/launch.sh`，以屏幕上肉眼亲眼看到顶栏与控制中心正常渲染为唯一验收合格标志**！
+---
+
+### 4. 后续 Agent 验收铁律
+所有 Agent 必须谨记：**凡是交付涉及窗口渲染的任务，必须实际运行 `./scripts/launch.sh`，以屏幕上肉眼亲眼看到顶栏与控制中心正常渲染、无黑边断层、交互无卡死为唯一验收合格标志**！
 

@@ -254,6 +254,9 @@ Singleton {
             onRead: data => root.applyResponse(data, "audio.watch")
         }
         onExited: exitCode => {
+            if (exitCode < 0 || exitCode === 127 || exitCode === 255) {
+                root.backendState = "idle";
+            }
             if (root.backendActive && root._reconnectAttempts < 3) {
                 root._reconnectAttempts++;
                 reconnect.start();
