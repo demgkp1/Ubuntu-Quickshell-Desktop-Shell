@@ -133,6 +133,17 @@ TaskCard:
   - 拦截退出码必须精准判定启动失败：`if (exitCode < 0 || exitCode === 127 || exitCode === 255)`；
   - 仅在明确命令不存在或无法执行时停止重试，严禁破坏正常的崩溃恢复循环。
 
+#### 铁律五：彻底绝缘 WlrLayershell 附加属性 (Zero Layershell Under XCB)
+- **机理**：Ubuntu GNOME Mutter 运行在 X11 (XCB) 下，不支持 Wayland Layer Shell 协议。一旦窗口存在未注释的 `WlrLayershell.*` 附加属性，Quickshell 在动态创建/激活窗口时会引发 OpenGL 图形上下文初始化崩溃 (`Failed to initialize graphics backend for OpenGL`)，导致窗口无法映射显示。
+- **规范**：
+  - 所有宿主窗口必须彻底注释或移除 `WlrLayershell.*` 附加属性，杜绝 XCB 运行期图形后端初始化失败。
+
+#### 铁律六：零原生桌面侵入与独立热键原则 (Zero Native Desktop Intrusion)
+- **机理**：通过 `gsettings` 强行篡改 GNOME 原生快捷键会破坏用户对系统基本功能的控制，引发严重体验降级与不可预知的按键劫持失败。
+- **规范**：
+  - 严禁通过代码或脚本修改 `gsettings` 原生配置；
+  - 保留所有系统原生快捷键，Quickshell 专属功能使用独立热键、IPC 或在 ControlCenter 中由用户自主配置。
+
 ---
 
 ### 3. 多宿主窗口显式桥接规范

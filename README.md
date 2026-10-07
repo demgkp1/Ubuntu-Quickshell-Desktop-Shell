@@ -43,9 +43,11 @@
 
 ---
 
-## 核心设计文档
+## 核心设计与交接文档
 
+- 📖 **[Agent 权威交接文档与全周期踩坑复盘手册 (docs/AGENT_HANDOVER_AND_POSTMORTEM.md)](docs/AGENT_HANDOVER_AND_POSTMORTEM.md)**：**（新接手 Agent 必读）** 包含 M1~M11 就绪矩阵、7 大深水区踩坑复盘、5 大预防铁律及剩余模块实施路线。
 - 📐 [架构设计规范 (docs/ARCHITECTURE.md)](docs/ARCHITECTURE.md)：三层解耦原则、GNOME 适配策略与目录规范。
+- 📋 [Master-Worker Agent 集群作业 SOP (docs/AGENT_CLUSTER_SOP.md)](docs/AGENT_CLUSTER_SOP.md)：子 Agent 任务卡签发标准与多宿主窗口验收硬门禁。
 - 🔍 [可移植性分析矩阵 (docs/PORTABILITY_MATRIX.md)](docs/PORTABILITY_MATRIX.md)：参考项目模块逐项移植评估与替代方案。
 - 🗺️ [阶段演进路线图 (docs/ROADMAP.md)](docs/ROADMAP.md)：Phase 0 至 Phase 7 渐进式实施规划。
 
