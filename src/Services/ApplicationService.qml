@@ -17,6 +17,15 @@ Singleton {
         return "";
     }
 
+    readonly property var launcherAppItem: ({
+        id: "org.clavis.Launcher",
+        name: qsTranslate("LauncherWindow", "Applications"),
+        genericName: "Launchpad",
+        keywords: ["Launchpad", "apps", "search", "spotlight", "launcher"],
+        symbol: "apps",
+        icon: "view-app-grid"
+    })
+
     readonly property var settingsApplication: ({
         id: "org.clavis.Settings",
         name: qsTranslate("ControlCenterWindow", "Settings"),
@@ -46,7 +55,7 @@ Singleton {
         dragOnly: true
     })
 
-    readonly property var launcherApplications: applications.concat([settingsApplication, spaceApplication, smallSpaceApplication])
+    readonly property var launcherApplications: applications.concat([launcherAppItem, settingsApplication, spaceApplication, smallSpaceApplication])
 
     function launchCommand(command, workingDirectory) {
         const argv = Array.from(command || []);
@@ -60,6 +69,10 @@ Singleton {
     function launchApplication(application) {
         if (!application || application.dragOnly)
             return false;
+        if (application.id === root.launcherAppItem.id) {
+            Quickshell.execDetached(["/home/dkp/projects/Ubuntu Quickshell Desktop Shell/scripts/toggle_spotlight.sh"]);
+            return true;
+        }
         if (application.id === root.settingsApplication.id) {
             if (typeof ControlCenterService !== "undefined" && ControlCenterService.openOrFocus)
                 return ControlCenterService.openOrFocus();

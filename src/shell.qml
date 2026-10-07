@@ -63,6 +63,24 @@ ShellRoot {
         id: dockHost
     }
 
+    IpcHandler {
+        target: "dock"
+
+        function setIconSize(size: int): int {
+            DockService.setOption("iconSize", size);
+            return DockService.iconSize;
+        }
+
+        function getIconSize(): int {
+            return DockService.iconSize;
+        }
+
+        function setMagnification(scale: real): real {
+            DockService.setOption("magnificationScale", scale);
+            return DockService.magnificationScale;
+        }
+    }
+
     // Spotlight Launcher Host Window
     LauncherWindow {
         id: spotlightLauncher

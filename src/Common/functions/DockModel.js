@@ -101,9 +101,12 @@ function pinnedKey(entry) {
 }
 
 function applicationForWindow(window, applications) {
-    // The shell's internal Settings window does not have a desktop file.
+    // The shell's internal Settings and Spotlight windows do not have desktop files.
     if (window.title === "clavis-control-center") {
         return applications.find(application => application.id === "org.clavis.Settings") || null;
+    }
+    if (window.title === "clavis-shell-spotlight") {
+        return applications.find(application => application.id === "org.clavis.Launcher") || null;
     }
     const identity = desktopId(window.appId);
     if (!identity || identity === "unknown") return null;

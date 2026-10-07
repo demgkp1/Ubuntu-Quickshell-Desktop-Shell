@@ -98,6 +98,10 @@ Singleton {
     property var _pinned: [
         {
             kind: "app",
+            desktopId: "org.clavis.Launcher"
+        },
+        {
+            kind: "app",
             desktopId: "org.clavis.Settings"
         }
     ]

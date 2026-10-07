@@ -17,13 +17,29 @@ export QT_QUICK_BACKEND="software"
 export QT_QPA_PLATFORM="xcb"
 export QML2_IMPORT_PATH="$PROJECT_DIR/imports:${QML2_IMPORT_PATH:-}"
 
-# Automatically hide native GNOME topbar on start, and restore it on exit/Ctrl+C
+# Automatically hide native GNOME topbar and register global shortcuts, restoring on exit/Ctrl+C
+ORIG_WINDOW_MENU=$(gsettings get org.gnome.desktop.wm.keybindings activate-window-menu 2>/dev/null || echo "['<Alt>space']")
+
 cleanup() {
     gnome-extensions disable "hidetopbar@mathieu.bidon.ca" 2>/dev/null || true
+    gsettings set org.gnome.desktop.wm.keybindings activate-window-menu "$ORIG_WINDOW_MENU" 2>/dev/null || true
+    gsettings reset org.gnome.settings-daemon.plugins.media-keys custom-keybindings 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
 
 gnome-extensions enable "hidetopbar@mathieu.bidon.ca" 2>/dev/null || true
+
+# Register global shortcuts in GNOME for Spotlight Launcher (<Alt>space and <Control>space)
+gsettings set org.gnome.desktop.wm.keybindings activate-window-menu "[]" 2>/dev/null || true
+gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/ name "Quickshell Spotlight" 2>/dev/null || true
+gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/ command "$PROJECT_DIR/scripts/toggle_spotlight.sh" 2>/dev/null || true
+gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/ binding "<Alt>space" 2>/dev/null || true
+
+gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/ name "Quickshell Spotlight Secondary" 2>/dev/null || true
+gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/ command "$PROJECT_DIR/scripts/toggle_spotlight.sh" 2>/dev/null || true
+gsettings set org.gnome.settings-daemon.plugins.media-keys.custom-keybinding:/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/ binding "<Control>space" 2>/dev/null || true
+
+gsettings set org.gnome.settings-daemon.plugins.media-keys custom-keybindings "['/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom0/', '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom1/']" 2>/dev/null || true
 
 cd "$PROJECT_DIR"
 nix develop "$PROJECT_DIR" --command quickshell -p "$PROJECT_DIR/src/" "$@"
