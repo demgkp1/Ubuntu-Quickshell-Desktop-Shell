@@ -263,7 +263,7 @@ Item {
 
                 anchors.fill: parent
                 hoverEnabled: true
-                cursorShape: Qt.ArrowCursor
+                cursorShape: Qt.PointingHandCursor
                 onClicked: root.toggleMenu()
             }
 
@@ -342,7 +342,7 @@ Item {
 
                 anchors.fill: parent
                 hoverEnabled: true
-                cursorShape: Qt.ArrowCursor
+                cursorShape: Qt.PointingHandCursor
                 onClicked: root.toggleMenu()
             }
 
@@ -447,7 +447,7 @@ Item {
 
                     anchors.fill: parent
                     hoverEnabled: true
-                    cursorShape: Qt.ArrowCursor
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: {
                         root.valueSelected(option.modelData.value);
                         optionsPopup.close();

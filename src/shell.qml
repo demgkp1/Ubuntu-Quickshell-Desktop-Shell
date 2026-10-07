@@ -9,6 +9,7 @@ import Quickshell.Io
 import qs.Common
 import qs.Components
 import qs.Modules.Bar
+import qs.Modules.ControlCenter
 import qs.Modules.Dock
 import qs.Modules.Keystone
 import qs.Modules.Launcher
@@ -135,37 +136,54 @@ ShellRoot {
         }
     }
 
-    // Interactive shortcuts to toggle QuickSettings
-    Shortcut {
-        sequence: "F1"
-        onActivated: {
-            WidgetState.quickSettingsOpen = !WidgetState.quickSettingsOpen;
-            console.warn("[M4 Test] F1 toggled quickSettingsOpen:", WidgetState.quickSettingsOpen);
+    // Lazy-loaded Control Center Window
+    LazyLoader {
+        id: controlCenterLoader
+
+        active: false
+        Component.onCompleted: ControlCenterService.registerLoader(controlCenterLoader)
+        onItemChanged: {
+            if (item)
+                ControlCenterService.registerWindow(item);
+        }
+
+        ControlCenterWindow {
+            id: controlCenterWindow
+
+            onPopoutClosed: ControlCenterService.windowClosed(controlCenterWindow)
         }
     }
 
+    IpcHandler {
+        target: "controlcenter"
+
+        function open(pageId: string): string {
+            ControlCenterService.open(pageId || "");
+            return "OPEN";
+        }
+
+        function openSearch(targetId: string): string {
+            ControlCenterService.openSearch(targetId || "");
+            return "SEARCH";
+        }
+
+        function toggle(): string {
+            ControlCenterService.toggle();
+            return "TOGGLE";
+        }
+
+        function close(): string {
+            ControlCenterService.close();
+            return "CLOSE";
+        }
+    }
+
+    // Interactive shortcuts to toggle QuickSettings
     Shortcut {
         sequence: "Ctrl+Alt+S"
         onActivated: {
             WidgetState.quickSettingsOpen = !WidgetState.quickSettingsOpen;
             console.warn("[M4 Test] Ctrl+Alt+S toggled quickSettingsOpen:", WidgetState.quickSettingsOpen);
-        }
-    }
-
-    // Interactive shortcuts to toggle Spotlight Launcher
-    Shortcut {
-        sequence: "Alt+Space"
-        onActivated: {
-            spotlightLauncher.toggleWindow();
-            console.warn("[M9 Spotlight] Alt+Space toggled launcher:", spotlightLauncher.windowPhase);
-        }
-    }
-
-    Shortcut {
-        sequence: "F2"
-        onActivated: {
-            spotlightLauncher.toggleWindow();
-            console.warn("[M9 Spotlight] F2 toggled launcher:", spotlightLauncher.windowPhase);
         }
     }
 }

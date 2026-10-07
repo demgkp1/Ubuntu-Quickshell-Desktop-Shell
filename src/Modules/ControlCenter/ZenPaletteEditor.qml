@@ -144,7 +144,7 @@ ColumnLayout {
                     Accessible.name: index === 0 ? qsTr("Primary color") : qsTr("Color %1").arg(index + 1)
                     Accessible.role: Accessible.Button
                     HoverHandler {
-                        cursorShape: Qt.ArrowCursor
+                        cursorShape: Qt.OpenHandCursor
                     }
                     MouseArea {
                         id: drag
@@ -305,7 +305,7 @@ ColumnLayout {
                                     id: presetMouse
                                     anchors.fill: parent
                                     hoverEnabled: true
-                                    cursorShape: Qt.ArrowCursor
+                                    cursorShape: Qt.PointingHandCursor
                                     onClicked: root.edited(Zen.preset(presetItem.presetIndex,
                                                                       root.paletteState))
                                 }
@@ -524,7 +524,7 @@ ColumnLayout {
                 id: knobMouse
                 anchors.fill: parent
                 hoverEnabled: true
-                cursorShape: Qt.ArrowCursor
+                cursorShape: Qt.PointingHandCursor
                 function updateValue(mouse) {
                     let angle = (Math.atan2(mouse.y - knob.height / 2, mouse.x - knob.width / 2) * 180
                                  / Math.PI + 450) % 360;

@@ -1,3 +1,5 @@
 module Clavis.Runtime
+ConfigFileWatch 1.0 ConfigFileWatch.qml
 HorizontalWheelArea 1.0 HorizontalWheelArea.qml
 ProcessQuit 1.0 ProcessQuit.qml
+singleton IconThemeController 1.0 IconThemeController.qml
