@@ -365,75 +365,123 @@ Singleton {
         "systemMonitor", "quickSettings"]
     readonly property var defaultBarLeadingComponents: ["workspaces", "information", "activeWindow"]
     readonly property var defaultBarTrailingComponents: ["tray", "systemMonitor", "quickSettings"]
-    readonly property var barComponentOptions: [({
-                                                     "value": "media",
-                                                     "label": qsTr("Media"),
-                                                     "icon": "music_note"
-                                                 }), ({
-                                                          "value": "workspaces",
-                                                          "label": qsTr("Workspaces"),
-                                                          "icon": "grid_view"
-                                                      }), ({
-                                                               "value": "information",
-                                                               "label": qsTr("Information"),
-                                                               "icon": "info"
-                                                           }), ({
-                                                                    "value": "activeWindow",
-                                                                    "label": qsTr("Active Window"),
-                                                                    "icon": "web_asset"
-                                                                }), ({
-                                                                         "value": "tray",
-                                                                         "label": qsTr("Tray"),
-                                                                         "icon": "inbox"
-                                                                     }), ({
-                                                                              "value": "systemMonitor",
-                                                                              "label": qsTr("System Monitor"),
-                                                                              "icon": "monitoring"
-                                                                          }), ({
-                                                                                   "value": "quickSettings",
-                                                                                   "label": qsTr(
-                                                                                                "Quick Settings"),
-                                                                                   "icon": "tune"
-                                                                               })]
+    function barComponentInfo(componentId) {
+        const isZh = (typeof I18nService !== "undefined" && I18nService.language === "zh_CN")
+                     || Qt.uiLanguage.indexOf("zh") !== -1;
+        switch (componentId) {
+        case "workspaces":
+            return {
+                value: "workspaces",
+                id: "workspaces",
+                label: isZh ? "工作区切换器" : qsTr("Workspaces"),
+                tag: isZh ? "虚拟桌面" : "Desktops",
+                description: isZh ? "虚拟桌面与工作区指示器，点击快速切换桌面" : qsTr("Virtual desktop switcher and workspace indicator"),
+                icon: "grid_view"
+            };
+        case "activeWindow":
+            return {
+                value: "activeWindow",
+                id: "activeWindow",
+                label: isZh ? "当前窗口标题" : qsTr("Active Window"),
+                tag: isZh ? "活动窗口" : "Focus Window",
+                description: isZh ? "显示当前操作中应用程序的图标与窗口标题名称" : qsTr("Displays focused application icon and window title"),
+                icon: "web_asset"
+            };
+        case "media":
+            return {
+                value: "media",
+                id: "media",
+                label: isZh ? "媒体播放控制" : qsTr("Media Controls"),
+                tag: isZh ? "音乐控制" : "Player",
+                description: isZh ? "状态栏显示音乐播放曲目信息与快捷播放/切歌控制" : qsTr("Status bar media player controls and track info"),
+                icon: "music_note"
+            };
+        case "tray":
+            return {
+                value: "tray",
+                id: "tray",
+                label: isZh ? "系统托盘 (后台应用)" : qsTr("System Tray (Background Apps)"),
+                tag: isZh ? "托盘驻留" : "Status Tray",
+                description: isZh ? "显示微信、输入法、网盘等常驻后台运行程序的托盘图标" : qsTr("Resident background icons (input method, messengers, cloud sync)"),
+                icon: "inbox"
+            };
+        case "systemMonitor":
+            return {
+                value: "systemMonitor",
+                id: "systemMonitor",
+                label: isZh ? "系统性能监控" : qsTr("System Monitor"),
+                tag: isZh ? "性能指标" : "Performance",
+                description: isZh ? "实时显示 CPU 负荷、内存占用率与网络上传/下载速率" : qsTr("Real-time CPU usage, RAM utilization, and network traffic"),
+                icon: "monitoring"
+            };
+        case "quickSettings":
+            return {
+                value: "quickSettings",
+                id: "quickSettings",
+                label: isZh ? "快捷设置控制胶囊" : qsTr("Quick Settings Capsule"),
+                tag: isZh ? "控制中心" : "Control Panel",
+                description: isZh ? "集成网络、蓝牙、音量、亮度调节与关机控制入口胶囊" : qsTr("Capsule integrating volume, network, battery, and power menu"),
+                icon: "tune"
+            };
+        case "information":
+            return {
+                value: "information",
+                id: "information",
+                label: isZh ? "通知与侧边栏入口" : qsTr("Sidebar & Notifications"),
+                tag: isZh ? "通知中心" : "Notifications",
+                description: isZh ? "通知未读徽标与控制胶囊，点击呼出仪表盘与通知侧边栏" : qsTr("Notification badge pill and toggle button for dashboard sidebar"),
+                icon: "info"
+            };
+        default:
+            return {
+                value: componentId,
+                id: componentId,
+                label: componentId,
+                tag: "",
+                description: "",
+                icon: "widgets"
+            };
+        }
+    }
+
+    function quickSettingsWidgetInfo(widgetId) {
+        const isZh = (typeof I18nService !== "undefined" && I18nService.language === "zh_CN")
+                     || Qt.uiLanguage.indexOf("zh") !== -1;
+        switch (widgetId) {
+        case "network":
+            return { value: "network", id: "network", label: isZh ? "网络连接 (Wi-Fi/以太网)" : qsTr("Network"), description: isZh ? "Wi-Fi 与有线以太网状态及快捷连接" : qsTr("Wi-Fi and Ethernet status and quick connection"), icon: "wifi" };
+        case "bluetooth":
+            return { value: "bluetooth", id: "bluetooth", label: isZh ? "蓝牙设备" : qsTr("Bluetooth"), description: isZh ? "蓝牙开关与已配对设备快速管理" : qsTr("Bluetooth toggle and paired device manager"), icon: "bluetooth" };
+        case "brightness":
+            return { value: "brightness", id: "brightness", label: isZh ? "屏幕亮度" : qsTr("Brightness"), description: isZh ? "显示器背光亮度滑动调节" : qsTr("Display backlight brightness slider"), icon: "brightness_6" };
+        case "volume":
+            return { value: "volume", id: "volume", label: isZh ? "输出音量" : qsTr("Volume"), description: isZh ? "系统音频输出主音量滑动调节" : qsTr("Main audio output volume slider"), icon: "volume_up" };
+        case "microphone":
+            return { value: "microphone", id: "microphone", label: isZh ? "麦克风输入" : qsTr("Microphone"), description: isZh ? "麦克风录音输入音量滑动调节" : qsTr("Microphone input volume slider"), icon: "mic" };
+        case "battery":
+            return { value: "battery", id: "battery", label: isZh ? "电池电量" : qsTr("Battery"), description: isZh ? "电池电量百分比与电源模式" : qsTr("Battery percentage and power profile"), icon: "battery_full" };
+        case "settings":
+            return { value: "settings", id: "settings", label: isZh ? "系统设置" : qsTr("Settings"), description: isZh ? "快速打开 Quickshell 设置中心" : qsTr("Quick shortcut to open settings hub"), icon: "settings" };
+        case "power":
+            return { value: "power", id: "power", label: isZh ? "电源与会话" : qsTr("Power"), description: isZh ? "关机、重启、锁定与注销菜单" : qsTr("Shutdown, reboot, lock and logout menu"), icon: "power_settings_new" };
+        default:
+            return { value: widgetId, id: widgetId, label: widgetId, description: "", icon: "widgets" };
+        }
+    }
+
+    readonly property var barComponentOptions: [
+        root.barComponentInfo("workspaces"),
+        root.barComponentInfo("activeWindow"),
+        root.barComponentInfo("information"),
+        root.barComponentInfo("media"),
+        root.barComponentInfo("tray"),
+        root.barComponentInfo("systemMonitor"),
+        root.barComponentInfo("quickSettings")
+    ]
     readonly property var quickSettingsComponentIds: ["network", "bluetooth", "brightness", "volume",
         "microphone", "battery", "settings", "power"]
     readonly property var defaultQuickSettingsComponents: root.quickSettingsComponentIds.slice()
-    readonly property var quickSettingsComponentOptions: [({
-                                                               "value": "network",
-                                                               "label": qsTr("Network"),
-                                                               "icon": "wifi"
-                                                           }), ({
-                                                                    "value": "bluetooth",
-                                                                    "label": qsTr("Bluetooth"),
-                                                                    "icon": "bluetooth"
-                                                                }), ({
-                                                                         "value": "brightness",
-                                                                         "label": qsTr("Brightness"),
-                                                                         "icon": "brightness_6"
-                                                                     }), ({
-                                                                              "value": "volume",
-                                                                              "label": qsTr("Volume"),
-                                                                              "icon": "volume_up"
-                                                                          }), ({
-                                                                                   "value": "microphone",
-                                                                                   "label": qsTr("Microphone"),
-                                                                                   "icon": "mic"
-                                                                               }), ({
-                                                                                        "value": "battery",
-                                                                                        "label": qsTr(
-                                                                                                     "Battery"),
-                                                                                        "icon": "battery_full"
-                                                                                    }), ({
-                                                                                             "value": "settings",
-                                                                                             "label": qsTr(
-                                                                                                          "Settings"),
-                                                                                             "icon": "settings"
-                                                                                         }), ({
-                                                                                                  "value": "power",
-                                                                                                  "label": qsTr(
-                                                                                                               "Power"),
-                                                                                                  "icon": "power_settings_new"
-                                                                                              })]
+    readonly property var quickSettingsComponentOptions: root.quickSettingsComponentIds.map(id => root.quickSettingsWidgetInfo(id))
     property var barLeadingComponents: root.defaultBarLeadingComponents.slice()
     property var barTrailingComponents: root.defaultBarTrailingComponents.slice()
     property var quickSettingsComponents: root.defaultQuickSettingsComponents.slice()
@@ -1653,6 +1701,17 @@ Singleton {
             return root.removeQuickSettingsComponent(id);
 
         return root.moveQuickSettingsComponent(id, root.quickSettingsComponents.length);
+    }
+
+    function resetBarLayout() {
+        root.barLeadingComponents = root.defaultBarLeadingComponents.slice();
+        root.barTrailingComponents = root.defaultBarTrailingComponents.slice();
+        root.save();
+    }
+
+    function resetQuickSettingsComponents() {
+        root.quickSettingsComponents = root.defaultQuickSettingsComponents.slice();
+        root.save();
     }
 
     function setKeystonePosition(value) {
