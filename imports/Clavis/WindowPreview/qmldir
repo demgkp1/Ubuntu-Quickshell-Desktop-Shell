@@ -1,0 +1,5 @@
+module Clavis.WindowPreview
+WindowPreviewManager 1.0 WindowPreviewManager.qml
+CaptureImage 1.0 CaptureImage.qml
+WindowCaptureProbe 1.0 WindowCaptureProbe.qml
+WindowPreviewFrame 1.0 WindowPreviewFrame.qml

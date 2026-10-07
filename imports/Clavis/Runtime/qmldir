@@ -1,0 +1,3 @@
+module Clavis.Runtime
+HorizontalWheelArea 1.0 HorizontalWheelArea.qml
+ProcessQuit 1.0 ProcessQuit.qml

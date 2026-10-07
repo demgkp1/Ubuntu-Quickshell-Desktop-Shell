@@ -8,6 +8,7 @@ import Quickshell
 import qs.Common
 import qs.Components
 import qs.Modules.Bar
+import qs.Modules.Dock
 import qs.Modules.Keystone
 import qs.Modules.Sidebars
 import qs.Services
@@ -53,6 +54,11 @@ ShellRoot {
     // Keystone Dynamic Island
     Keystone {
         id: keystone
+    }
+
+    // Floating fluid Dock
+    DockHost {
+        id: dockHost
     }
 
     // Interactive shortcuts to toggle QuickSettings
