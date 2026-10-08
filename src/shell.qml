@@ -16,6 +16,7 @@ import qs.Modules.Keystone
 import qs.Modules.Launcher
 import qs.Modules.Lock
 import qs.Modules.PowerMenu
+import qs.Modules.RegionSelector
 import qs.Modules.Sidebars
 import qs.Services
 import qs.Widgets.common
@@ -264,6 +265,48 @@ ShellRoot {
 
         function isLocked(): bool {
             return sessionLocker.isLocked();
+        }
+    }
+
+    // Region selection & screenshot subsystem
+    RegionSelector {
+        id: regionSelector
+    }
+
+    IpcHandler {
+        target: "screenshot"
+
+        function region(): string {
+            ScreenshotService.captureRegion();
+            return "REGION";
+        }
+
+        function screen(): string {
+            ScreenshotService.captureScreen();
+            return "SCREEN";
+        }
+
+        function color(): string {
+            ScreenshotService.pickColor();
+            return "COLOR";
+        }
+    }
+
+    IpcHandler {
+        target: "regionselector"
+
+        function begin(action: string): string {
+            RegionSelectionService.begin(action || "screenshot");
+            return "BEGIN";
+        }
+
+        function cancel(): string {
+            RegionSelectionService.cancel();
+            return "CANCEL";
+        }
+
+        function isActive(): bool {
+            return RegionSelectionService.active;
         }
     }
 
