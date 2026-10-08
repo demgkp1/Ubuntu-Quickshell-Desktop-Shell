@@ -1,0 +1,19 @@
+[Unit]
+Description=Clavis Desktop Shell (Ubuntu Quickshell)
+Documentation=https://github.com/demgkp1/Ubuntu-Quickshell-Desktop-Shell
+PartOf=graphical-session.target
+After=graphical-session.target gnome-session.target
+
+[Service]
+Type=simple
+Environment="DISPLAY=:0"
+Environment="QT_QUICK_BACKEND=software"
+Environment="QT_QPA_PLATFORM=xcb"
+ExecStart="/home/dkp/projects/Ubuntu Quickshell Desktop Shell/bin/clavis-desktop-shell"
+Restart=on-failure
+RestartSec=2
+KillMode=mixed
+TimeoutStopSec=5
+
+[Install]
+WantedBy=graphical-session.target

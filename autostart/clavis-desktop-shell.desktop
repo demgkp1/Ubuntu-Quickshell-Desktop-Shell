@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Clavis Desktop Shell
+Comment=Mutter X11 Desktop Shell built with Quickshell
+Exec="/home/dkp/projects/Ubuntu Quickshell Desktop Shell/bin/clavis-desktop-shell"
+Icon=preferences-desktop-theme
+Terminal=false
+Categories=System;Utility;
+StartupNotify=false
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Phase=Applications
+X-GNOME-Autostart-Delay=1

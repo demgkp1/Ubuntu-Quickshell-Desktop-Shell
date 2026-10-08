@@ -1,0 +1,183 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+if [ -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
+    . "$HOME/.nix-profile/etc/profile.d/nix.sh"
+elif [ -f "/nix/var/nix/profiles/default/etc/profile.d/nix.sh" ]; then
+    . "/nix/var/nix/profiles/default/etc/profile.d/nix.sh"
+fi
+
+SERVICE_NAME="clavis-desktop-shell.service"
+
+call_ipc() {
+    local target="${1:-}"
+    local method="${2:-}"
+    shift 2 || true
+    nix develop "$PROJECT_DIR" --command quickshell ipc -p "$PROJECT_DIR/src/shell.qml" call "$target" "$method" "$@" 2>/dev/null \
+        | grep -v "===" | grep -v "Quickshell" | grep -v "^$" | tr -d '\r' | tail -n 1
+}
+
+show_help() {
+    cat << EOF
+Clavis Desktop Shell Management Tool (clavisctl)
+
+Usage:
+  clavisctl <command> [arguments...]
+
+Service Commands:
+  start           Start the shell via systemd user service
+  stop            Stop the shell and restore GNOME native topbar
+  restart         Restart the shell service
+  status          Show comprehensive health report (service, X11 windows, IPC)
+  logs [-f]       Show systemd service logs (optionally follow)
+
+Interactive Controls:
+  toggle <target> Toggle UI module:
+                  - spotlight | launcher   (Spotlight search launcher)
+                  - controlcenter          (Control Center window)
+                  - powermenu              (Power / session menu)
+                  - quicksettings          (Quick settings sidebar)
+                  - lock                   (Lock screen)
+                  - screenshot             (Region screenshot selector)
+                  - color                  (Screen color picker)
+
+IPC Passthrough:
+  ipc <target> <method> [args...]  Call Quickshell IPC directly
+
+Examples:
+  clavisctl status
+  clavisctl toggle spotlight
+  clavisctl toggle quicksettings
+  clavisctl ipc hotcorners getAction top-left
+EOF
+}
+
+cmd="${1:-status}"
+shift || true
+
+case "$cmd" in
+    start)
+        echo "[clavisctl] Starting $SERVICE_NAME..."
+        systemctl --user start "$SERVICE_NAME"
+        echo "[clavisctl] Service started. Current status:"
+        systemctl --user status "$SERVICE_NAME" --no-pager || true
+        ;;
+    stop)
+        echo "[clavisctl] Stopping $SERVICE_NAME..."
+        systemctl --user stop "$SERVICE_NAME" 2>/dev/null || true
+        killall quickshell 2>/dev/null || true
+        gnome-extensions disable "hidetopbar@mathieu.bidon.ca" 2>/dev/null || true
+        echo "[clavisctl] Shell stopped cleanly."
+        ;;
+    restart)
+        echo "[clavisctl] Restarting $SERVICE_NAME..."
+        systemctl --user restart "$SERVICE_NAME"
+        echo "[clavisctl] Service restarted."
+        ;;
+    status)
+        echo "=========================================================="
+        echo "           Clavis Desktop Shell Health Status             "
+        echo "=========================================================="
+        
+        # 1. Systemd Service State
+        local_active=$(systemctl --user is-active "$SERVICE_NAME" 2>/dev/null || true)
+        echo -n "[Systemd Service] $SERVICE_NAME: "
+        if [ "$local_active" = "active" ]; then
+            echo "● ACTIVE (running)"
+        else
+            echo "○ $local_active"
+        fi
+
+        # 2. Process check
+        QS_PIDS=$(pgrep -f "quickshell.*src/shell.qml" || pgrep -x "quickshell" || true)
+        if [ -n "$QS_PIDS" ]; then
+            echo "[Process] Running PID(s): $QS_PIDS"
+        else
+            echo "[Process] Not running"
+        fi
+
+        # 3. Mutter X11 Window Topology
+        echo "----------------------------------------------------------"
+        echo "[X11 Window Tree]"
+        if command -v xwininfo >/dev/null 2>&1; then
+            WINDOWS=$(xwininfo -root -tree | grep -E "quickshell|HorizontalBar|Sidebar|Keystone|Dock" || true)
+            if [ -n "$WINDOWS" ]; then
+                echo "$WINDOWS"
+            else
+                echo "  No Quickshell windows mapped in root window tree."
+            fi
+        else
+            echo "  xwininfo not found, skipping window inspection."
+        fi
+
+        # 4. IPC Responsiveness
+        echo "----------------------------------------------------------"
+        echo -n "[IPC Responsiveness] Ping: "
+        if [ -n "$QS_PIDS" ]; then
+            LOCK_STATE=$(call_ipc lock isLocked || echo "ERROR")
+            if [ "$LOCK_STATE" != "ERROR" ]; then
+                echo "ONLINE (Lock state: $LOCK_STATE)"
+            else
+                echo "OFFLINE or Unresponsive"
+            fi
+        else
+            echo "SKIPPED (Process not running)"
+        fi
+        echo "=========================================================="
+        ;;
+    logs)
+        journalctl --user -u "$SERVICE_NAME" "$@"
+        ;;
+    ipc)
+        call_ipc "$@"
+        ;;
+    toggle)
+        sub="${1:-}"
+        case "$sub" in
+            spotlight|launcher)
+                call_ipc spotlight toggle
+                ;;
+            controlcenter|settings)
+                call_ipc controlcenter toggle
+                ;;
+            powermenu|power)
+                call_ipc powermenu toggle
+                ;;
+            quicksettings|sidebar)
+                WidgetStateOpen=$(call_ipc quicksettings toggle 2>/dev/null || true)
+                call_ipc hotcorners trigger "quicksettings:settings" ""
+                ;;
+            lock)
+                is_locked=$(call_ipc lock isLocked)
+                if [ "$is_locked" = "true" ]; then
+                    call_ipc lock close
+                else
+                    call_ipc lock open
+                fi
+                ;;
+            screenshot)
+                call_ipc screenshot region
+                ;;
+            color)
+                call_ipc screenshot color
+                ;;
+            *)
+                echo "Unknown toggle target: $sub"
+                echo "Available: spotlight, controlcenter, powermenu, quicksettings, lock, screenshot, color"
+                exit 1
+                ;;
+        esac
+        ;;
+    help|--help|-h)
+        show_help
+        ;;
+    *)
+        echo "Unknown command: $cmd"
+        show_help
+        exit 1
+        ;;
+esac

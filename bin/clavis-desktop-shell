@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Determine repository root
+SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+# Ensure Nix profile is available
+if [ -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
+    . "$HOME/.nix-profile/etc/profile.d/nix.sh"
+elif [ -f "/nix/var/nix/profiles/default/etc/profile.d/nix.sh" ]; then
+    . "/nix/var/nix/profiles/default/etc/profile.d/nix.sh"
+fi
+
+# Ensure graphical environment variables are present
+export DISPLAY="${DISPLAY:-:0}"
+if [ -z "${XAUTHORITY:-}" ] && [ -f "$HOME/.Xauthority" ]; then
+    export XAUTHORITY="$HOME/.Xauthority"
+fi
+
+# Mutter X11 & Qt software rasterization enforcement
+export QT_QUICK_BACKEND="software"
+export QT_QPA_PLATFORM="xcb"
+export XCURSOR_THEME="${XCURSOR_THEME:-Yaru}"
+export XCURSOR_SIZE="${XCURSOR_SIZE:-24}"
+export XCURSOR_PATH="${XCURSOR_PATH:-/usr/share/icons:$HOME/.icons}"
+export QML2_IMPORT_PATH="$PROJECT_DIR/imports:${QML2_IMPORT_PATH:-}"
+
+# GNOME TopBar extension management
+cleanup() {
+    gnome-extensions disable "hidetopbar@mathieu.bidon.ca" 2>/dev/null || true
+}
+trap cleanup EXIT INT TERM
+
+gnome-extensions enable "hidetopbar@mathieu.bidon.ca" 2>/dev/null || true
+
+cd "$PROJECT_DIR"
+exec nix develop "$PROJECT_DIR" --command quickshell -p "$PROJECT_DIR/src/shell.qml" "$@"
