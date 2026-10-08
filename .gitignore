@@ -5,6 +5,7 @@ scratch/
 
 # Build artifacts
 build/
+dist/
 *.qmlc
 *.jsc
 .cache/

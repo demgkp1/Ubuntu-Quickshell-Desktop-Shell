@@ -35,6 +35,11 @@ Service Commands:
   status          Show comprehensive health report (service, X11 windows, IPC)
   logs [-f]       Show systemd service logs (optionally follow)
 
+Autostart Commands:
+  autostart enable   Enable shell autostart on system boot / login
+  autostart disable  Disable shell autostart on system boot / login
+  autostart status   Check autostart configuration state
+
 Interactive Controls:
   toggle <target> Toggle UI module:
                   - spotlight | launcher   (Spotlight search launcher)
@@ -77,6 +82,44 @@ case "$cmd" in
         echo "[clavisctl] Restarting $SERVICE_NAME..."
         systemctl --user restart "$SERVICE_NAME"
         echo "[clavisctl] Service restarted."
+        ;;
+    autostart)
+        sub="${1:-status}"
+        case "$sub" in
+            enable)
+                echo "[clavisctl] Enabling autostart for $SERVICE_NAME..."
+                systemctl --user enable "$SERVICE_NAME"
+                mkdir -p "$HOME/.config/autostart"
+                if [ -f "$PROJECT_DIR/autostart/clavis-desktop-shell.desktop" ]; then
+                    cp "$PROJECT_DIR/autostart/clavis-desktop-shell.desktop" "$HOME/.config/autostart/clavis-desktop-shell.desktop"
+                fi
+                echo "[clavisctl] Autostart successfully enabled (systemd user unit enabled, XDG desktop autostart installed)."
+                ;;
+            disable)
+                echo "[clavisctl] Disabling autostart for $SERVICE_NAME..."
+                systemctl --user disable "$SERVICE_NAME" 2>/dev/null || true
+                rm -f "$HOME/.config/autostart/clavis-desktop-shell.desktop"
+                echo "[clavisctl] Autostart disabled. Shell will NOT automatically launch on next boot / login."
+                ;;
+            status)
+                echo "[clavisctl] Autostart status:"
+                if systemctl --user is-enabled "$SERVICE_NAME" >/dev/null 2>&1; then
+                    echo "  Systemd User Unit: enabled"
+                else
+                    echo "  Systemd User Unit: disabled / not installed"
+                fi
+                if [ -f "$HOME/.config/autostart/clavis-desktop-shell.desktop" ]; then
+                    echo "  XDG Autostart File: Present (~/.config/autostart/clavis-desktop-shell.desktop)"
+                else
+                    echo "  XDG Autostart File: Absent"
+                fi
+                ;;
+            *)
+                echo "Unknown autostart command: $sub"
+                echo "Usage: clavisctl autostart {enable|disable|status}"
+                exit 1
+                ;;
+        esac
         ;;
     status)
         echo "=========================================================="
