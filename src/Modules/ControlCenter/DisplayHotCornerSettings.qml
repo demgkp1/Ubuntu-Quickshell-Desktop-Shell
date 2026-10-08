@@ -81,6 +81,7 @@ ColumnLayout {
     spacing: Metrics.spacingL
 
     NiriSetupPrompt {
+        visible: NiriConfigService.supported
         Layout.fillWidth: true
         title: qsTranslate("HotCornersPage", "Hot corners")
         description: qsTranslate("HotCornersPage",
@@ -121,7 +122,7 @@ ColumnLayout {
         title: qsTranslate("HotCornersPage", "Hot corners")
         supportingText: qsTr("Actions apply to all displays.")
         iconName: "open_in_full"
-        enabled: NiriConfigService.ready("hot-corners")
+        enabled: !NiriConfigService.supported || NiriConfigService.ready("hot-corners")
 
         Repeater {
             model: root.cornerOptions

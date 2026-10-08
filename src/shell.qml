@@ -12,6 +12,7 @@ import qs.Modules.Bar
 import qs.Modules.ControlCenter
 import qs.Modules.DesktopCards
 import qs.Modules.Dock
+import qs.Modules.HotCorners
 import qs.Modules.Keystone
 import qs.Modules.Launcher
 import qs.Modules.Lock
@@ -310,6 +311,66 @@ ShellRoot {
         }
     }
 
+    // Hot corners subsystem
+    HotCorners {
+        id: hotCorners
+        locked: sessionLocker.active || RegionSelectionService.active
+
+        onTriggered: (action, screenName) => {
+            console.warn("[HotCorners] Handling action:", action, "on screen:", screenName);
+            if (!action || action === "disabled")
+                return;
+
+            if (action === "overview") {
+                Quickshell.execDetached(["gdbus", "call", "--session", "--dest", "org.gnome.Shell", "--object-path", "/org/gnome/Shell", "--method", "org.freedesktop.DBus.Properties.Set", "org.gnome.Shell", "OverviewActive", "<true>"]);
+                return;
+            }
+
+            if (action.indexOf(":") !== -1) {
+                const parts = action.split(":");
+                const role = parts[0];
+                const view = parts[1];
+                const targetScreen = screenName || (Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0].name : "");
+                sidebarHost.openOnScreen(role, view, targetScreen);
+                return;
+            }
+
+            if (action === "spotlight") {
+                spotlightLauncher.toggleWindow();
+                return;
+            }
+        }
+    }
+
+    IpcHandler {
+        target: "hotcorners"
+
+        function trigger(action: string, screenName: string): string {
+            if (!action || action === "disabled")
+                return "DISABLED";
+            const targetScreen = screenName || (Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0].name : "");
+            hotCorners.triggered(action, targetScreen);
+            return "TRIGGERED";
+        }
+
+        function getAction(corner: string): string {
+            return (PersonalizationConfig.hotCornerActions && PersonalizationConfig.hotCornerActions[corner]) || "disabled";
+        }
+
+        function setAction(corner: string, action: string): string {
+            PersonalizationConfig.setHotCornerAction(corner, action);
+            return (PersonalizationConfig.hotCornerActions && PersonalizationConfig.hotCornerActions[corner]) || "disabled";
+        }
+
+        function getCornerIds(): string {
+            return JSON.stringify(PersonalizationConfig.hotCornerIds);
+        }
+
+        function isLocked(): bool {
+            return hotCorners.locked;
+        }
+    }
+
     // Interactive shortcuts to toggle QuickSettings
     Shortcut {
         sequence: "Ctrl+Alt+S"
@@ -319,3 +380,4 @@ ShellRoot {
         }
     }
 }
+

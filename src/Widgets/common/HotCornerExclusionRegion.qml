@@ -11,7 +11,7 @@ Region {
     property bool bottomEdge: true
     property bool leftEdge: true
     property bool rightEdge: true
-    readonly property bool active: NiriConfigService.ready("hot-corners")
+    readonly property bool active: !NiriConfigService.supported ? true : NiriConfigService.ready("hot-corners")
 
     function cornerSize(corner, onEdge) {
         return active && onEdge && PersonalizationConfig.hotCornerActions[corner] !== "disabled"
