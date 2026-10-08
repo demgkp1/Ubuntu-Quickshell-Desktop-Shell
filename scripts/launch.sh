@@ -17,13 +17,17 @@ export QT_QUICK_BACKEND="software"
 export QT_QPA_PLATFORM="xcb"
 export QML2_IMPORT_PATH="$PROJECT_DIR/imports:${QML2_IMPORT_PATH:-}"
 
-# Automatically hide native GNOME topbar on start, and restore it on exit/Ctrl+C
+# Automatically hide native GNOME topbar & dock on start, and restore on exit/Ctrl+C
 cleanup() {
+    killall quickshell 2>/dev/null || true
     gnome-extensions disable "hidetopbar@mathieu.bidon.ca" 2>/dev/null || true
+    gnome-extensions enable "ubuntu-dock@ubuntu.com" 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
 
 gnome-extensions enable "hidetopbar@mathieu.bidon.ca" 2>/dev/null || true
+gnome-extensions disable "ubuntu-dock@ubuntu.com" 2>/dev/null || true
+gnome-extensions disable "dash-to-dock@micxgx.gmail.com" 2>/dev/null || true
 
 cd "$PROJECT_DIR"
 nix develop "$PROJECT_DIR" --command quickshell -p "$PROJECT_DIR/src/" "$@"

@@ -14,6 +14,7 @@ cleanup() {
     systemctl --user disable clavis-desktop-shell.service 2>/dev/null || true
     killall quickshell 2>/dev/null || true
     gnome-extensions disable "hidetopbar@mathieu.bidon.ca" 2>/dev/null || true
+    gnome-extensions enable "ubuntu-dock@ubuntu.com" 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
 

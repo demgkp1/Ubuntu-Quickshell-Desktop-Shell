@@ -18,11 +18,14 @@ export QML2_IMPORT_PATH="$PROJECT_DIR/imports:${QML2_IMPORT_PATH:-}"
 cleanup() {
     killall quickshell 2>/dev/null || true
     gnome-extensions disable "hidetopbar@mathieu.bidon.ca" 2>/dev/null || true
+    gnome-extensions enable "ubuntu-dock@ubuntu.com" 2>/dev/null || true
 }
 trap cleanup EXIT INT TERM
 
 echo "[Smoke Test] Starting 3-second ephemeral Quickshell validation..."
 gnome-extensions enable "hidetopbar@mathieu.bidon.ca" 2>/dev/null || true
+gnome-extensions disable "ubuntu-dock@ubuntu.com" 2>/dev/null || true
+gnome-extensions disable "dash-to-dock@micxgx.gmail.com" 2>/dev/null || true
 
 # Run quickshell for 3 seconds, then terminate cleanly
 timeout 3s nix develop "$PROJECT_DIR" --command quickshell -p "$PROJECT_DIR/src/" || {
