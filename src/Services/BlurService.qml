@@ -13,6 +13,8 @@ Singleton {
     readonly property bool available: true
     readonly property bool enabled: true
     readonly property bool xray: false
+    property string lastError: ""
+    property bool niriIntegrationReady: false
 
     function backgroundColor(baseColor) {
         return Appearance.applyAlpha(baseColor, PersonalizationConfig.shellBackgroundOpacity);

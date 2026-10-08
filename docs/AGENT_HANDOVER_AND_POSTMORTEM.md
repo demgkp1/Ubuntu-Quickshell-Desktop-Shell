@@ -4,7 +4,7 @@
 > **目标受众**：下一任接手本项目的开发 Agent 与维护工程师  
 > **基准参考源**：`reference/StatIndet-quickshell/` (Clavis Desktop Shell)  
 > **目标宿主环境**：Ubuntu 24.04 LTS (GNOME 46 / Mutter, X11/XCB, Nix Flake Quickshell 0.3.1)  
-> **当前版本基线**：Milestone 11 完结，Git Commit `f42fd15`  
+> **当前版本基线**：Milestone 15 全量完结，Git Commit `a35b9ae`  
 > **文档状态**：权威指导文档 (Canonical & Binding)
 
 ---
@@ -15,7 +15,7 @@
 本项目旨在将上游 Arch Linux / Niri 环境下的现代化极致液态桌面 Shell（Clavis / StatIndet-quickshell）**1:1 源码级无损移植**至 **Ubuntu 24.04 LTS (GNOME 46 Mutter)** 环境。
 系统依托 **Quickshell 0.3.1**，基于 Google Material 3 (M3) 设计规范与 Matugen 算法，实现全桌面根据壁纸实时自适应配色、极清矢量微件、毫秒级响应动效以及与底层 Ubuntu 系统服务的深度整合。
 
-### 1.2 里程碑交付矩阵 (M1 ~ M11 就绪状态)
+### 1.2 里程碑交付矩阵 (M1 ~ M15 全量就绪)
 
 | 里程碑 | 模块名称 | 核心文件与职责 | 就绪状态 | 关键交付 Commit |
 | :--- | :--- | :--- | :---: | :--- |
@@ -30,6 +30,10 @@
 | **M9** | Spotlight 聚光灯启动器 | `src/Modules/Launcher/`（LauncherWindow、全能搜索、纯 QML 剪贴板） | ✅ 100% | `72f0c63` |
 | **M10** | ControlCenter 设置中心 | `src/Modules/ControlCenter/`（72 个设置组件、图形化 Dock 尺寸与按键） | ✅ 100% | `dc98442` |
 | **M11** | 电源会话与桌面卡片层 | `src/Modules/PowerMenu/`（6 键液态电源面板）、`src/Modules/DesktopCards/` | ✅ 100% | `28c8320` / `f42fd15` |
+| **M12** | 锁屏界面系统 | `src/Modules/Lock/`（ffmpeg x11grab 桌面抓图、PAM 认证、时间问候） | ✅ 100% | `57ead4a` |
+| **M13** | 区域截图与取色器 | `src/Modules/RegionSelector/`、`src/Services/ScreenshotService.qml` | ✅ 100% | `c304043` |
+| **M14** | 屏幕物理防抖热角 | `src/Modules/HotCorners/`（8x8 几何定位、120ms 防抖停留引擎） | ✅ 100% | `26f1f91` |
+| **M15** | 打包装箱与开机自启动 | `bin/clavis-desktop-shell`、`systemd`、`scripts/clavisctl` | ✅ 100% | `a35b9ae` |
 
 ### 1.3 跨平台纯 QML Shim 资产资产库 (Zero C++ Dependency)
 为解耦上游 Arch Linux 专属的 C++ 动态库依赖，已构建以下纯 QML/JS 垫片：
@@ -182,50 +186,49 @@ flowchart TD
 
 ---
 
-## 四、 剩余待移植上游模块与实施路线图 (Remaining Roadmap)
+## 四、 已交付高级子系统与实施架构 (Delivered Subsystems Architecture: M12~M15)
 
-目前主体架构与核心交互（顶栏、侧栏、灵动岛、Dock、聚光灯、设置中心、电源菜单、桌面卡片）均已完成，剩余待移植模块如下：
-
-```mermaid
-gantt
-    title 后续里程碑实施路线图
-    dateFormat  YYYY-MM-DD
-    section 剩余模块移植
-    M12 锁屏界面 (Modules/Lock)       :a1, 2026-10-08, 2d
-    M13 区域截图与取色 (RegionSelector):a2, after a1, 2d
-    M14 屏幕热角交互 (HotCorners)     :a3, after a2, 1d
-    section 发布与交付
-    M15 打包装箱与开机自启动部署       :a4, after a3, 2d
-```
+全量 15 个里程碑已于 Git Commit `a35b9ae` 全部落地交付。以下为 M12 至 M15 高级子系统的关键实现与技术机理总结：
 
 ### 1. Milestone 12: 锁屏界面系统 (`Modules/Lock/`)
 - **上游参考源**：`reference/StatIndet-quickshell/Modules/Lock/`
-- **核心文件**：`LockWindow.qml`、`LockSurface.qml`、`PamAuth.qml`
-- **适配重点**：
-  - 遵循常驻映射与 X11 密码输入捕获；
-  - 对接 PAM 认证或 `loginctl unlock-session`；
-  - 壁纸毛玻璃无缝过渡与时间呈现。
+- **交付 Commit**：`57ead4a`
+- **核心文件**：`LockWindow.qml`、`LockSurface.qml`、`pam/password.conf`、`scripts/capture/lock_snapshot.sh`
+- **适配创新与技术要点**：
+  - 针对 Mutter X11 环境创建常驻全屏 `LockWindow.qml`，覆盖输入拦截与 PAM 认证；
+  - 研发 `lock_snapshot.sh`，基于 `ffmpeg -f x11grab` 在 96ms 内无黑边捕获屏幕作为毛玻璃底图；
+  - 集成 CaelestiaLock 与 DefaultLock 两套锁屏视觉风格；
+  - 验证套件：`./scripts/test_m12_lock_e2e.sh` 全通。
 
 ### 2. Milestone 13: 屏幕区域截图与拾色器 (`Modules/RegionSelector/`)
 - **上游参考源**：`reference/StatIndet-quickshell/Modules/RegionSelector/`
-- **核心文件**：`RegionSelectorWindow.qml`、`ColorPickerPreview.qml`
-- **适配重点**：
-  - 全屏冻结画布选区；
-  - 对接 GNOME 原生截图 DBus API (`org.gnome.Shell.Screenshot`)；
-  - 选区坐标实时计算与像素颜色抓取。
+- **交付 Commit**：`c304043`
+- **核心文件**：`RegionSelectionWindow.qml`、`ScreenshotService.qml`、`scripts/capture/screenshot_region.sh`、`scripts/capture/pick_color.sh`
+- **适配创新与技术要点**：
+  - 常驻映射 + XShape 动态裁剪：在空闲时以 `emptyMaskRegion (0x0)` 穿透，激活时全屏接管事件；
+  - 选区坐标实时计算、放大镜极清网格拾色器；
+  - 截图自动落盘 `~/Pictures/Screenshots/` 并通过 Python Gtk3 写入系统剪贴板；
+  - 验证套件：`./scripts/test_m13_region_selector_e2e.sh` 全通。
 
 ### 3. Milestone 14: 屏幕热角交互 (`Modules/HotCorners/`)
 - **上游参考源**：`reference/StatIndet-quickshell/Modules/HotCorners/`
-- **核心文件**：`HotCornerManager.qml`、`CornerTrigger.qml`
-- **适配重点**：
-  - 屏幕四角防误触物理区域判定；
-  - 触发动作映射（如左上角呼出 Overview、右上角呼出 QuickSettings）。
+- **交付 Commit**：`26f1f91`
+- **核心文件**：`HotCornerWindow.qml`、`HotCorners.qml`、`shell.qml`
+- **适配创新与技术要点**：
+  - 4 个极端角落（(0,0)、(w-8,0)、(0,h-8)、(w-8,h-8)）8x8 物理像素窗口；
+  - **120ms 防抖停留引擎 (Anti-chatter Dwell Engine)**：杜绝快速划过边缘造成的误触；
+  - 锁屏与选区截图时自动锁定防冲突穿透；
+  - 验证套件：`./scripts/test_m14_hotcorners_e2e.sh` 全通。
 
 ### 4. Milestone 15: 系统级服务整合与一键发布 (Packaging & Systemd)
-- **核心工作**：
-  - 创建 Systemd User 服务配置文件：`clavis-desktop-shell.service`；
-  - 配置 `scripts/install.sh` 与 `scripts/uninstall.sh`；
-  - 编写用户级快速安装部署指南。
+- **交付 Commit**：`a35b9ae`
+- **核心文件**：`bin/clavis-desktop-shell`、`systemd/user/clavis-desktop-shell.service`、`autostart/clavis-desktop-shell.desktop`、`scripts/clavisctl`、`scripts/install.sh`、`scripts/uninstall.sh`
+- **运维与架构要点**：
+  - 封装轻量启动器 `bin/clavis-desktop-shell`，自动注入软渲染与 Mutter X11 参数；
+  - Systemd User 单元绑定 `graphical-session.target`，支持 2 秒崩溃自愈重拉；
+  - 统一管理工具 `clavisctl`（支持 `status`, `start`, `stop`, `restart`, `logs`, `toggle <module>`）；
+  - 详细运维文档 `docs/DEPLOYMENT_AND_AUTOSTART.md`；
+  - 验证套件：`./scripts/test_m15_deployment_e2e.sh` 全通。
 
 ---
 

@@ -13,6 +13,10 @@ Singleton {
     readonly property real gamma: 1.0
     readonly property real contrast: 1.0
     property string error: ""
+    property bool locating: false
+    property string locationError: ""
+    property string scheduleWarning: ""
+    property var outputs: []
 
     property var preferences: ({
         nightEnabled: false,
@@ -23,7 +27,10 @@ Singleton {
 
     property var schedule: ({
         temperature: 4500,
-        condition: "normal"
+        condition: "normal",
+        period: "day",
+        transitioning: false,
+        next: 0
     })
 
     function setDimming(v) {
@@ -40,4 +47,7 @@ Singleton {
         const next = Object.assign({}, preferences, { [key]: value });
         preferences = next;
     }
+
+    function locate() {}
+    function useWeatherLocation() {}
 }

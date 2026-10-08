@@ -131,6 +131,56 @@ Singleton {
         }
     }
 
+    function setWallpaperFillModeForScreen(screenName, mode) {
+        root.revision += 1;
+        return true;
+    }
+
+    function scan() {
+        if (!scanProc.running)
+            scanProc.running = true;
+    }
+
+    function applyCycle(action) {
+        if (!root.wallpapers || root.wallpapers.length === 0)
+            return false;
+        let index = root.wallpapers.indexOf(root.currentWallpaper);
+        let nextIndex = 0;
+        if (action === "previous") {
+            nextIndex = index >= 0 ? (index - 1 + root.wallpapers.length) % root.wallpapers.length : root.wallpapers.length - 1;
+        } else if (action === "random") {
+            if (root.wallpapers.length > 1) {
+                do {
+                    nextIndex = Math.floor(Math.random() * root.wallpapers.length);
+                } while (nextIndex === index);
+            }
+        } else {
+            nextIndex = index >= 0 ? (index + 1) % root.wallpapers.length : 0;
+        }
+        root.setCurrentWallpaper(root.wallpapers[nextIndex]);
+        return true;
+    }
+
+    function cycleNext() { return root.applyCycle("next"); }
+    function cyclePrevious() { return root.applyCycle("previous"); }
+    function cycleRandom() { return root.applyCycle("random"); }
+    function clearWallpaper(screenName) {
+        root.setCurrentWallpaper("/usr/share/backgrounds/ubuntu-wallpaper-d.png");
+    }
+
+    Process {
+        id: scanProc
+        command: ["find", "/usr/share/backgrounds", "-type", "f", "(", "-name", "*.png", "-o", "-name", "*.jpg", "-o", "-name", "*.webp", ")"]
+        running: true
+        stdout: StdioCollector {
+            onTextChanged: {
+                const list = text.trim().split("\n").filter(p => p.length > 0);
+                if (list.length > 0)
+                    root.wallpapers = list;
+            }
+        }
+    }
+
     Component.onCompleted: {
         ThemeService.generateFromWallpaper(root.currentWallpaper);
     }

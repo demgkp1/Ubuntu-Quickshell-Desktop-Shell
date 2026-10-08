@@ -74,6 +74,13 @@ Singleton {
     ]
     property var availableWifiNetworks: []
     property var savedWifiProfiles: []
+    property var wiredProfiles: []
+    readonly property var allWifiNetworks: availableWifiNetworks
+    readonly property var nearbyWifiNetworks: availableWifiNetworks
+    property var runtimeDetails: ({ addresses: [], gateway: "", dns: [], frequency: "" })
+    property string runtimeDetailsError: ""
+    property bool wifiConnecting: false
+    property string connectTargetSsid: ""
 
     function toggleWifi() {
         if (hasNativeDevices)
@@ -102,4 +109,9 @@ Singleton {
     function acquireScan(owner) {}
     function releaseScan(owner) {}
     function requestScan() {}
+    function addWifiNetwork(ssid, hidden, secure, secret, callback) { if (callback) callback(false, "Unsupported in headless"); }
+    function profileSnapshot(profile) { return Object.assign({}, profile || {}); }
+    function writeProfile(profile, changes) { return true; }
+    function requestRuntimeDetails(interfaceName, isWifi, callback) {}
+    function releaseRuntimeDetails() {}
 }

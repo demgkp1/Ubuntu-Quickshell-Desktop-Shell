@@ -150,4 +150,5 @@ Singleton {
     function forgetDevice(device) {}
     function setDeviceTrusted(device, trusted) {}
     function setDeviceWakeAllowed(device, wake) {}
+    function setDeviceBlocked(device, blocked) {}
 }

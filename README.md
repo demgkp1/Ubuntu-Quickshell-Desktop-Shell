@@ -45,11 +45,37 @@
 
 ## 核心设计与交接文档
 
-- 📖 **[Agent 权威交接文档与全周期踩坑复盘手册 (docs/AGENT_HANDOVER_AND_POSTMORTEM.md)](docs/AGENT_HANDOVER_AND_POSTMORTEM.md)**：**（新接手 Agent 必读）** 包含 M1~M11 就绪矩阵、7 大深水区踩坑复盘、5 大预防铁律及剩余模块实施路线。
-- 📐 [架构设计规范 (docs/ARCHITECTURE.md)](docs/ARCHITECTURE.md)：三层解耦原则、GNOME 适配策略与目录规范。
+- 📖 **[Agent 权威交接文档与全周期踩坑复盘手册 (docs/AGENT_HANDOVER_AND_POSTMORTEM.md)](docs/AGENT_HANDOVER_AND_POSTMORTEM.md)**：包含 M1~M15 全量交付矩阵、7 大深水区踩坑复盘、5 大预防铁律及交付子系统技术详解。
+- 📐 [架构设计规范 (docs/ARCHITECTURE.md)](docs/ARCHITECTURE.md)：1:1 源码级镜像分层架构、Matugen 调色管道与 Mutter 适配规范。
 - 📋 [Master-Worker Agent 集群作业 SOP (docs/AGENT_CLUSTER_SOP.md)](docs/AGENT_CLUSTER_SOP.md)：子 Agent 任务卡签发标准与多宿主窗口验收硬门禁。
-- 🔍 [可移植性分析矩阵 (docs/PORTABILITY_MATRIX.md)](docs/PORTABILITY_MATRIX.md)：参考项目模块逐项移植评估与替代方案。
-- 🗺️ [阶段演进路线图 (docs/ROADMAP.md)](docs/ROADMAP.md)：Phase 0 至 Phase 7 渐进式实施规划。
+- 🚀 [部署与开机自启运维指南 (docs/DEPLOYMENT_AND_AUTOSTART.md)](docs/DEPLOYMENT_AND_AUTOSTART.md)：Systemd 用户服务配置、`clavisctl` CLI 工具与开机自启运维。
+- 💻 [动态硬件自适应矩阵 (docs/HARDWARE_ADAPTATION_MATRIX.md)](docs/HARDWARE_ADAPTATION_MATRIX.md)：台式机/笔记本、有线/无线、硬件/软件背光自适应矩阵。
+
+---
+
+## 快速安装与运维管理 (`clavisctl`)
+
+在具备 Nix 环境的 Ubuntu 24.04 系统中，执行一键部署：
+
+```bash
+# 一键安装服务、开机自启桌面条目与命令行工具
+./scripts/install.sh --enable --start
+
+# 日常运维与健康检查
+clavisctl status     # 查看服务状态、PID、X11 窗口几何树与 IPC 响应
+clavisctl restart    # 重启桌面 Shell
+clavisctl stop       # 停止 Shell 并自动恢复 GNOME 原生顶栏
+clavisctl logs -f    # 跟踪实时日志
+
+# 交互切换指令
+clavisctl toggle spotlight       # 呼出/收起聚光灯搜索
+clavisctl toggle controlcenter   # 呼出/收起控制中心设置
+clavisctl toggle powermenu       # 呼出/收起电源菜单
+clavisctl toggle quicksettings   # 展开/收起右侧快捷设置
+clavisctl toggle lock            # 锁屏
+clavisctl toggle screenshot      # 呼出区域截图选区
+clavisctl toggle color           # 呼出屏幕拾色器
+```
 
 ---
 

@@ -485,6 +485,7 @@ Singleton {
     property var barLeadingComponents: root.defaultBarLeadingComponents.slice()
     property var barTrailingComponents: root.defaultBarTrailingComponents.slice()
     property var quickSettingsComponents: root.defaultQuickSettingsComponents.slice()
+    property bool quickSettingsSlidersDetailed: true
     property string keystonePosition: "top"
     property bool keystoneCapsLockOsd: true
     property bool keystoneNumLockOsd: true
@@ -1711,6 +1712,11 @@ Singleton {
 
     function resetQuickSettingsComponents() {
         root.quickSettingsComponents = root.defaultQuickSettingsComponents.slice();
+        root.save();
+    }
+
+    function setQuickSettingsSlidersDetailed(value) {
+        root.quickSettingsSlidersDetailed = !!value;
         root.save();
     }
 
