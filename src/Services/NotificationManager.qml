@@ -130,14 +130,22 @@ Singleton {
         root.addLocal(title, path, path);
     }
 
-    function addLocal(title, body, filePath) {
+    Connections {
+        target: typeof X11WindowService !== "undefined" ? X11WindowService : null
+        function onNotificationReceived(notif) {
+            if (!notif) return;
+            root.addLocal(notif.summary || "", notif.body || "", "", notif.appName || "System", notif.appIcon || "dialog-information");
+        }
+    }
+
+    function addLocal(title, body, filePath, appName, appIcon) {
         const now = Date.now();
         const notif = notifComponent.createObject(root, {
                                                       notificationId: ++root.idOffset,
-                                                      appName: "Clavis Shell",
-                                                      appIcon: "folder",
+                                                      appName: appName || "Clavis Shell",
+                                                      appIcon: appIcon || (filePath ? "folder" : "dialog-information"),
                                                       summary: title,
-                                                      body: body.replace(/&/g, "&amp;").replace(/</g,
+                                                      body: (body || "").replace(/&/g, "&amp;").replace(/</g,
                                                                                                 "&lt;").replace(
                                                                 />/g, "&gt;"),
                                                       localKind: filePath ? "file-saved" : "",

@@ -148,7 +148,10 @@ FloatingWindow {
     Material.theme: PersonalizationConfig.themeMode === "light" ? Material.Light : Material.Dark
     Material.accent: Appearance.colors.colPrimary
     onVisibleChanged: {
-        if (!root.visible && root._wasShown) {
+        if (root.visible) {
+            if (typeof X11WindowService !== "undefined")
+                X11WindowService.stripDecorations("clavis-control-center");
+        } else if (!root.visible && root._wasShown) {
             ControlCenterService.cancelSearch();
             root.closeChildWindows();
             root._wasShown = false;
@@ -230,7 +233,7 @@ FloatingWindow {
 
                     anchors.horizontalCenter: parent.horizontalCenter
                     anchors.verticalCenter: parent.verticalCenter
-                    text: qsTr("Settings")
+                    text: I18nService.tr("Settings", "ControlCenterWindow")
                     color: Appearance.colors.colOnLayer0
                     font.family: Fonts.ui
                     font.pixelSize: 24

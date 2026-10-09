@@ -18,18 +18,77 @@ Singleton {
     property bool scanning: false
 
     readonly property var imageExtensions: ["jpg", "jpeg", "png", "webp", "bmp", "gif"]
+    property bool canUseAwww: false
+    property string lastDesktopError: ""
+    property string lastOverviewError: ""
 
     function wallpaperForScreen(screenName) {
         return root.currentWallpaper;
     }
 
-    function setCurrentWallpaper(path) {
-        if (!path || path === root.currentWallpaper)
-            return;
-        root.currentWallpaper = path;
-        root.revision += 1;
-        ThemeService.generateFromWallpaper(path);
+    function overviewWallpaperForScreen(screenName) {
+        return root.currentWallpaper;
     }
+
+    function normalizedPath(path) {
+        return String(path || "").replace(/^file:\/\//, "");
+    }
+
+    function parentFolder(path) {
+        if (!path) return "";
+        const clean = root.normalizedPath(path);
+        const idx = clean.lastIndexOf("/");
+        return idx > 0 ? clean.substring(0, idx) : "/";
+    }
+
+    function sourceKind(path) {
+        if (!path) return "file";
+        return root.isColorSource(path) ? "palette" : "file";
+    }
+
+    function setCurrentWallpaper(path) {
+        if (!path)
+            return;
+        const cleanPath = root.normalizedPath(path);
+        root.currentWallpaper = cleanPath;
+        root.revision += 1;
+
+        // Write to GNOME desktop background (Mutter X11)
+        const fileUri = "file://" + cleanPath;
+        Quickshell.execDetached(["gsettings", "set", "org.gnome.desktop.background", "picture-uri", fileUri]);
+        Quickshell.execDetached(["gsettings", "set", "org.gnome.desktop.background", "picture-uri-dark", fileUri]);
+        Quickshell.execDetached(["gsettings", "set", "org.gnome.desktop.background", "picture-options", "zoom"]);
+
+        ThemeService.generateFromWallpaper(cleanPath);
+    }
+
+    function setWallpaper(path) {
+        root.setCurrentWallpaper(path);
+        return true;
+    }
+
+    function setWallpaperFromFile(path, output) {
+        root.setCurrentWallpaper(path);
+        return true;
+    }
+
+    function setOverviewWallpaper(path, output) {
+        root.setCurrentWallpaper(path);
+        return true;
+    }
+
+    function clearOverviewWallpaper(output) {
+        root.clearWallpaper(output);
+    }
+
+    function refreshOverviewBackdropRule() {}
+    function setDesktopWallpaperBackend(val) {}
+    function setWallpaperTransitionType(type) {}
+    function setTransitionDurationMs(ms) {}
+    function setTransitionBezierCurve(curve) {}
+    function setTransitionEasingMode(mode) {}
+    function setWallpaperFolder(path) {}
+    function setOverviewFillModeForScreen(screen, mode) {}
 
     function basename(path) {
         if (!path)

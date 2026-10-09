@@ -162,7 +162,7 @@ Singleton {
     function rebuild() {
         const applications = ApplicationService.launcherApplications.filter(application =>
         !application.dragOnly);
-        const windows = Niri.connected ? Niri.searchWindows("") : [];
+        const windows = Niri.connected ? Niri.searchWindows("") : (typeof X11WindowService !== "undefined" ? X11WindowService.windows : []);
         const focusOrder = Object.create(null);
         for (const window of windows)
             focusOrder[window.id] = root._focusOrder[window.id] || 0;
@@ -294,29 +294,43 @@ Singleton {
     }
 
     function focusWindow(id, outputName) {
-        if (!Niri.connected || WindowPreviewService.suspended)
-            return false;
-        const window = Niri.windowById(id);
-        if (!window || !window.id)
-            return false;
-        return window.isMinimized ? Niri.restoreWindow(id, String(outputName || "")) : Niri.focusWindow(id);
+        if (Niri.connected) {
+            if (WindowPreviewService.suspended)
+                return false;
+            const window = Niri.windowById(id);
+            if (!window || !window.id)
+                return false;
+            return window.isMinimized ? Niri.restoreWindow(id, String(outputName || "")) : Niri.focusWindow(id);
+        } else if (typeof X11WindowService !== "undefined") {
+            return X11WindowService.activateWindow(id);
+        }
+        return false;
     }
 
     function minimizeWindow(id) {
-        if (!root.supportsMinimize || WindowPreviewService.suspended)
-            return false;
-        const window = Niri.windowById(id);
-        if (!window || !window.id || window.isMinimized)
-            return false;
-        return WindowPreviewService.snapshot(id, () => {
-            const current = Niri.windowById(id);
-            if (root.supportsMinimize && current && current.id && !current.isMinimized)
-                Niri.minimizeWindow(id);
-        });
+        if (Niri.connected) {
+            if (!root.supportsMinimize || WindowPreviewService.suspended)
+                return false;
+            const window = Niri.windowById(id);
+            if (!window || !window.id || window.isMinimized)
+                return false;
+            return WindowPreviewService.snapshot(id, () => {
+                const current = Niri.windowById(id);
+                if (root.supportsMinimize && current && current.id && !current.isMinimized)
+                    Niri.minimizeWindow(id);
+            });
+        } else if (typeof X11WindowService !== "undefined") {
+            return X11WindowService.minimizeWindow(id);
+        }
+        return false;
     }
 
     function closeWindow(id) {
-        return Niri.connected && Niri.closeWindow(id);
+        if (Niri.connected)
+            return Niri.closeWindow(id);
+        if (typeof X11WindowService !== "undefined")
+            return X11WindowService.closeWindow(id);
+        return false;
     }
 
     function setOption(name, value) {
@@ -528,6 +542,14 @@ Singleton {
         }
         function onConnectedChanged() {
             root.rebuild();
+        }
+    }
+
+    Connections {
+        target: typeof X11WindowService !== "undefined" ? X11WindowService : null
+        function onWindowsChanged() {
+            if (!Niri.connected)
+                root.rebuild();
         }
     }
 

@@ -110,6 +110,10 @@ Singleton {
         const value = String(url || "");
         if (!value)
             return false;
+        if (value === "trash:///" || value.startsWith("trash:")) {
+            Quickshell.execDetached(["/usr/bin/nautilus", "trash:///"]);
+            return true;
+        }
         Quickshell.execDetached(["xdg-open", value]);
         return true;
     }

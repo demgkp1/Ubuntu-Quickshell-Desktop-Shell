@@ -44,8 +44,17 @@ MouseArea {
 
     onPressed: event => {
         if (event.button === Qt.LeftButton) {
-            root.modelData.activate();
-            root.closeMenu();
+            if (root.modelData.hasMenu || root.modelData.menu) {
+                if (menu.active && menu.item && typeof menu.item.close === "function") {
+                    menu.item.close();
+                } else {
+                    root.closeOtherMenus();
+                    menu.open();
+                }
+            } else {
+                root.modelData.activate();
+                root.closeMenu();
+            }
         } else if (event.button === Qt.RightButton) {
             if (root.modelData.hasMenu || root.modelData.menu) {
                 if (menu.active && menu.item && typeof menu.item.close === "function") {
@@ -89,7 +98,15 @@ MouseArea {
     IconImage {
         id: trayIcon
 
-        source: root.modelData.icon || ""
+        source: {
+            const raw = (root.modelData && root.modelData.icon) ? root.modelData.icon : "";
+            if (!raw) return "";
+            if (raw.startsWith("file://") || raw.startsWith("/") || raw.startsWith("qrc:/") || raw.startsWith("image://")) {
+                return raw;
+            }
+            const resolved = Quickshell.iconPath(raw, true);
+            return (resolved && resolved !== "") ? resolved : ("image://icon/" + raw);
+        }
         anchors.centerIn: parent
         width: Sizes.barIconSize
         height: Sizes.barIconSize

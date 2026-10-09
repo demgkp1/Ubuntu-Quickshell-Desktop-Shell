@@ -198,6 +198,11 @@ Singleton {
                 target.activate();
                 return true;
             } else if (root.controlCenterWindow) {
+                if (typeof X11WindowService !== "undefined") {
+                    const win = X11WindowService.searchWindows("clavis-control-center");
+                    if (win && win.length > 0)
+                        X11WindowService.activateWindow(win[0].id);
+                }
                 if (typeof root.controlCenterWindow.requestActivate === "function")
                     root.controlCenterWindow.requestActivate();
                 if (typeof root.controlCenterWindow.raise === "function")

@@ -34,7 +34,7 @@ function option(name, value) {
     if (name === "position") return ["bottom", "left", "right"].indexOf(value) >= 0 ? value : undefined;
     if (typeof value !== "number" || !isFinite(value)) return undefined;
     if (name === "previewSize") return Math.round(Math.max(96, Math.min(240, value)));
-    if (name === "iconSize") return Math.round(Math.max(32, Math.min(80, value)));
+    if (name === "iconSize") return Math.round(Math.max(20, Math.min(80, value)));
     if (name === "magnificationScale") return Math.max(1, Math.min(2, value));
     return undefined;
 }

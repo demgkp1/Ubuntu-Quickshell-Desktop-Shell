@@ -107,8 +107,8 @@ StyledFlickable {
 
             GeneralSliderSetting {
                 title: qsTr("Icon size")
-                from: 32
-                to: 80
+                from: 20
+                to: 60
                 stepSize: 2
                 suffix: " px"
                 value: DockService.iconSize

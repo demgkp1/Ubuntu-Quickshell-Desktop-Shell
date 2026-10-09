@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.Common
+import qs.Services
 
 ColumnLayout {
     id: root
@@ -11,7 +12,7 @@ ColumnLayout {
     property bool blocked: false
     property string error: ""
     signal setupRequested
-    visible: integrationState !== "ready" && (integrationState !== "loading" || error.length > 0)
+    visible: ThemeService.isNiriSession && integrationState !== "ready" && (integrationState !== "loading" || error.length > 0)
     spacing: Metrics.spacingS
 
     SettingsRow {

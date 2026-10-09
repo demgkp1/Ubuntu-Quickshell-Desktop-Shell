@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import qs.Services
+import "../Common/I18nZhCN.js" as ZhData
 
 Singleton {
     id: root
@@ -15,6 +16,14 @@ Singleton {
     readonly property string language: (typeof UiPreferences !== "undefined" && UiPreferences.language) ? UiPreferences.language : "en_US"
     property bool ready: true
     property string lastError: ""
+
+    function tr(text, context) {
+        if (!text) return "";
+        if (root.language === "zh_CN") {
+            return ZhData.tr(text, context);
+        }
+        return text;
+    }
 
     function initialize() {
         if (Qt.uiLanguage !== root.language)

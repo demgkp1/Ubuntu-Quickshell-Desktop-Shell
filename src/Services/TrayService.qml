@@ -18,8 +18,31 @@ Singleton {
     property bool filterPassive: true
     property var pinnedItemIds: ["Fcitx"]
 
-    readonly property var visibleItems: (SystemTray.items && SystemTray.items.values ? SystemTray.items.values : []).filter(item => !root.filterPassive
-                                                                                       || (item && item.status !== Status.Passive))
+    readonly property var ayatanaItemsWrapped: (typeof X11WindowService !== "undefined" && X11WindowService.ayatanaItems ? X11WindowService.ayatanaItems : []).map(entry => {
+        return {
+            id: entry.id,
+            title: entry.title,
+            icon: entry.icon,
+            tooltipTitle: entry.title,
+            tooltipDescription: "",
+            status: entry.status,
+            hasMenu: false,
+            menu: null,
+            activate: function() {
+                X11WindowService.activateAyatana(entry.bus, entry.path);
+            }
+        };
+    })
+
+    readonly property var rawItems: {
+        const sys = (SystemTray.items && SystemTray.items.values ? SystemTray.items.values : []);
+        const existingIds = new Set(sys.map(i => i.id));
+        const extra = root.ayatanaItemsWrapped.filter(i => !existingIds.has(i.id));
+        return sys.concat(extra);
+    }
+
+    readonly property var visibleItems: root.rawItems.filter(item => !root.filterPassive
+                                                               || (item && item.status !== Status.Passive))
     readonly property var itemsInUserList: visibleItems.filter(item => item && root.pinnedItemIds.indexOf(item.id) !== -1)
     readonly property var itemsNotInUserList: visibleItems.filter(item => item && root.pinnedItemIds.indexOf(item.id) === -1)
     readonly property var pinnedItems: root.invertPinnedItems ? root.itemsNotInUserList : root.itemsInUserList

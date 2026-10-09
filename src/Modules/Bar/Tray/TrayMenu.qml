@@ -56,7 +56,7 @@ PopupWindow {
 
     visible: false
     color: "transparent"
-    grabFocus: ThemeService.isNiriSession
+    grabFocus: true
     implicitWidth: popupBackground.implicitWidth + root.padding * 2
     implicitHeight: popupBackground.implicitHeight + root.padding * 2
     onVisibleChanged: {

@@ -112,6 +112,7 @@ StyledFlickable {
                 Layout.fillWidth: true
                 iconName: "language"
                 text: SpotlightCatalog.title("general.language-region")
+                description: I18nService.language === "zh_CN" ? "简体中文" : (I18nService.language === "zh_TW" ? "繁體中文" : "English")
                 trailingIconName: "chevron_right"
                 onClicked: root.sectionRequested("language-region")
             }
