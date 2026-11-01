@@ -326,6 +326,8 @@ WidgetPanel {
                 Layout.preferredHeight: toggleContent.implicitHeight + root.togglePadding * 2
                 radius: Appearance.rounding.large
                 color: Appearance.colors.colLayer1
+                border.color: Appearance.colors.colLayer0Border
+                border.width: 1
 
                 readonly property real baseCellWidth: {
                     const availableWidth = width - root.togglePadding * 2 - root.toggleSpacing * (

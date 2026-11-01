@@ -13,6 +13,7 @@ QtObject {
     // The shared host owns both panels on the same retained output.
     property string sidebarScreenName: ""
     property bool sidebarPresentationActive: false
+    property bool sessionLocked: false
 
     function sidebarHasPriority(screenName) {
         return screenName !== "" && sidebarPresentationActive && sidebarScreenName === screenName;
@@ -24,6 +25,11 @@ QtObject {
         quickSettingsOpen = false;
         dashboardSidebarOpen = false;
         transientSurfacesDismissRequested();
+    }
+
+    onSessionLockedChanged: {
+        if (sessionLocked)
+            closeAllPopups();
     }
 
     onQuickSettingsOpenChanged: {

@@ -2,8 +2,6 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import Quickshell
-import Clavis.Files
-import Clavis.Niri
 import Quickshell.Wayland
 import qs.Common
 import qs.Components
@@ -17,10 +15,13 @@ PanelWindow {
 
     required property string edge
 
-    NiriAnimationTargets {
+    QtObject {
         id: animationTargets
-        enabled: Niri.supportsMinimizeAnimation && !WindowPreviewService.suspended && root.visible
-        onEnabledChanged: root.updateAnimationTargets()
+        property bool enabled: false
+        property var targets: []
+        function update() {
+            return false;
+        }
     }
     // Geometry notifications arrive once per animated property, not once per
     // frame. Coalesce before walking the row and converting the IPC payload;

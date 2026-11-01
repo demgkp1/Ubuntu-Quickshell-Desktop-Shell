@@ -21,6 +21,13 @@ Singleton {
     property bool canUseAwww: false
     property string lastDesktopError: ""
     property string lastOverviewError: ""
+    property string desktopWallpaperBackend: "gnome"
+    property string wallpaperTransitionType: "fade"
+    property int transitionDurationMs: 300
+    property string transitionBezierCurve: "easeInOutQuad"
+    property string transitionEasingMode: "InOutQuad"
+    property string wallpaperFolder: "/usr/share/backgrounds"
+    property var overviewFillModes: ({})
 
     function wallpaperForScreen(screenName) {
         return root.currentWallpaper;
@@ -53,6 +60,9 @@ Singleton {
         root.currentWallpaper = cleanPath;
         root.revision += 1;
 
+        // Persist to PersonalizationConfig
+        PersonalizationConfig.setWallpaperPath(cleanPath);
+
         // Write to GNOME desktop background (Mutter X11)
         const fileUri = "file://" + cleanPath;
         Quickshell.execDetached(["gsettings", "set", "org.gnome.desktop.background", "picture-uri", fileUri]);
@@ -81,14 +91,63 @@ Singleton {
         root.clearWallpaper(output);
     }
 
-    function refreshOverviewBackdropRule() {}
-    function setDesktopWallpaperBackend(val) {}
-    function setWallpaperTransitionType(type) {}
-    function setTransitionDurationMs(ms) {}
-    function setTransitionBezierCurve(curve) {}
-    function setTransitionEasingMode(mode) {}
-    function setWallpaperFolder(path) {}
-    function setOverviewFillModeForScreen(screen, mode) {}
+    function refreshOverviewBackdropRule() {
+        root.revision += 1;
+        return true;
+    }
+
+    function setDesktopWallpaperBackend(val) {
+        if (!val || root.desktopWallpaperBackend === val)
+            return;
+        root.desktopWallpaperBackend = String(val);
+        root.settingsRevision += 1;
+    }
+
+    function setWallpaperTransitionType(type) {
+        if (!type || root.wallpaperTransitionType === type)
+            return;
+        root.wallpaperTransitionType = String(type);
+        root.settingsRevision += 1;
+    }
+
+    function setTransitionDurationMs(ms) {
+        const val = Number(ms);
+        if (!isFinite(val) || val < 0)
+            return;
+        root.transitionDurationMs = val;
+        root.settingsRevision += 1;
+    }
+
+    function setTransitionBezierCurve(curve) {
+        if (!curve)
+            return;
+        root.transitionBezierCurve = String(curve);
+        root.settingsRevision += 1;
+    }
+
+    function setTransitionEasingMode(mode) {
+        if (!mode)
+            return;
+        root.transitionEasingMode = String(mode);
+        root.settingsRevision += 1;
+    }
+
+    function setWallpaperFolder(path) {
+        if (!path)
+            return;
+        const clean = root.normalizedPath(path);
+        root.wallpaperFolder = clean;
+        root.scan();
+    }
+
+    function setOverviewFillModeForScreen(screen, mode) {
+        if (!screen || !mode)
+            return;
+        const copy = Object.assign({}, root.overviewFillModes);
+        copy[screen] = String(mode);
+        root.overviewFillModes = copy;
+        root.settingsRevision += 1;
+    }
 
     function basename(path) {
         if (!path)

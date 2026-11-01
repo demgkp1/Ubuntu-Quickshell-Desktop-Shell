@@ -144,11 +144,210 @@ Singleton {
             adapter.discovering = false;
     }
 
-    function connectDevice(device) {}
-    function disconnectDevice(device) {}
-    function pairDevice(device) {}
-    function forgetDevice(device) {}
-    function setDeviceTrusted(device, trusted) {}
-    function setDeviceWakeAllowed(device, wake) {}
-    function setDeviceBlocked(device, blocked) {}
+    function _resolveDevice(deviceLike) {
+        if (!deviceLike)
+            return null;
+        if (typeof deviceLike.connect === "function")
+            return deviceLike;
+        const address = typeof deviceLike === "string" ? deviceLike : String(deviceLike.address || "");
+        if (address.length === 0)
+            return null;
+        return root._nativeDevices.find(dev => dev && dev.address === address) || null;
+    }
+
+    function _resolveAddress(deviceLike) {
+        if (!deviceLike)
+            return "";
+        if (typeof deviceLike === "string")
+            return deviceLike;
+        return String(deviceLike.address || "");
+    }
+
+    function connectDevice(device) {
+        const address = root._resolveAddress(device);
+        const nativeDev = root._resolveDevice(device);
+        root.lastError = "";
+        root.operationStarted("connect");
+
+        let handled = false;
+        if (nativeDev && typeof nativeDev.connect === "function") {
+            try {
+                nativeDev.connect();
+                handled = true;
+            } catch (e) {
+                console.warn("[BluetoothService] native connect() exception, attempting bluetoothctl fallback:", e);
+            }
+        }
+
+        if (!handled && address.length > 0) {
+            Quickshell.execDetached(["bluetoothctl", "connect", address]);
+            handled = true;
+        }
+
+        if (handled) {
+            root.operationSucceeded("connect");
+        } else {
+            root.lastError = qsTr("Device address or adapter not available for connection");
+            root.operationFailed("connect", root.lastError);
+        }
+    }
+
+    function disconnectDevice(device) {
+        const address = root._resolveAddress(device);
+        const nativeDev = root._resolveDevice(device);
+        root.lastError = "";
+        root.operationStarted("disconnect");
+
+        let handled = false;
+        if (nativeDev && typeof nativeDev.disconnect === "function") {
+            try {
+                nativeDev.disconnect();
+                handled = true;
+            } catch (e) {
+                console.warn("[BluetoothService] native disconnect() exception, attempting bluetoothctl fallback:", e);
+            }
+        }
+
+        if (!handled && address.length > 0) {
+            Quickshell.execDetached(["bluetoothctl", "disconnect", address]);
+            handled = true;
+        }
+
+        if (handled) {
+            root.operationSucceeded("disconnect");
+        } else {
+            root.lastError = qsTr("Device address or adapter not available for disconnect");
+            root.operationFailed("disconnect", root.lastError);
+        }
+    }
+
+    function pairDevice(device) {
+        const address = root._resolveAddress(device);
+        const nativeDev = root._resolveDevice(device);
+        root.lastError = "";
+        root.operationStarted("pair");
+
+        let handled = false;
+        if (nativeDev && typeof nativeDev.pair === "function") {
+            try {
+                nativeDev.pair();
+                handled = true;
+            } catch (e) {
+                console.warn("[BluetoothService] native pair() exception, attempting bluetoothctl fallback:", e);
+            }
+        }
+
+        if (!handled && address.length > 0) {
+            Quickshell.execDetached(["bluetoothctl", "pair", address]);
+            handled = true;
+        }
+
+        if (handled) {
+            root.operationSucceeded("pair");
+        } else {
+            root.lastError = qsTr("Device address not available for pairing");
+            root.operationFailed("pair", root.lastError);
+        }
+    }
+
+    function forgetDevice(device) {
+        const address = root._resolveAddress(device);
+        const nativeDev = root._resolveDevice(device);
+        root.lastError = "";
+        root.operationStarted("forget");
+
+        let handled = false;
+        if (nativeDev && typeof nativeDev.forget === "function") {
+            try {
+                nativeDev.forget();
+                handled = true;
+            } catch (e) {
+                console.warn("[BluetoothService] native forget() exception, attempting bluetoothctl fallback:", e);
+            }
+        }
+
+        if (!handled && address.length > 0) {
+            Quickshell.execDetached(["bluetoothctl", "remove", address]);
+            handled = true;
+        }
+
+        if (handled) {
+            root.operationSucceeded("forget");
+        } else {
+            root.lastError = qsTr("Device address not available for removal");
+            root.operationFailed("forget", root.lastError);
+        }
+    }
+
+    function setDeviceTrusted(device, trusted) {
+        const address = root._resolveAddress(device);
+        const nativeDev = root._resolveDevice(device);
+        root.lastError = "";
+        root.operationStarted("set-trusted");
+
+        let handled = false;
+        if (nativeDev && nativeDev.trusted !== undefined) {
+            try {
+                nativeDev.trusted = !!trusted;
+                handled = true;
+            } catch (e) {
+                console.warn("[BluetoothService] setting nativeDev.trusted exception:", e);
+            }
+        }
+
+        if (!handled && address.length > 0) {
+            Quickshell.execDetached(["bluetoothctl", trusted ? "trust" : "untrust", address]);
+            handled = true;
+        }
+
+        if (handled) {
+            root.operationSucceeded("set-trusted");
+        } else {
+            root.lastError = qsTr("Device not found to update trust state");
+            root.operationFailed("set-trusted", root.lastError);
+        }
+    }
+
+    function setDeviceWakeAllowed(device, wake) {
+        const nativeDev = root._resolveDevice(device);
+        root.lastError = "";
+        root.operationStarted("set-wake-allowed");
+
+        if (nativeDev && nativeDev.wakeAllowed !== undefined) {
+            nativeDev.wakeAllowed = !!wake;
+            root.operationSucceeded("set-wake-allowed");
+        } else {
+            root.lastError = qsTr("Device does not support wake configuration");
+            root.operationFailed("set-wake-allowed", root.lastError);
+        }
+    }
+
+    function setDeviceBlocked(device, blocked) {
+        const address = root._resolveAddress(device);
+        const nativeDev = root._resolveDevice(device);
+        root.lastError = "";
+        root.operationStarted("set-blocked");
+
+        let handled = false;
+        if (nativeDev && nativeDev.blocked !== undefined) {
+            try {
+                nativeDev.blocked = !!blocked;
+                handled = true;
+            } catch (e) {
+                console.warn("[BluetoothService] setting nativeDev.blocked exception:", e);
+            }
+        }
+
+        if (!handled && address.length > 0) {
+            Quickshell.execDetached(["bluetoothctl", blocked ? "block" : "unblock", address]);
+            handled = true;
+        }
+
+        if (handled) {
+            root.operationSucceeded("set-blocked");
+        } else {
+            root.lastError = qsTr("Device not found to update block state");
+            root.operationFailed("set-blocked", root.lastError);
+        }
+    }
 }

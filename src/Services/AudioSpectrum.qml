@@ -2,7 +2,6 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
-import Clavis.Cava
 
 Singleton {
     id: root

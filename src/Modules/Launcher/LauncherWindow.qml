@@ -4,7 +4,6 @@ import QtQuick.Controls
 import QtQuick.Controls.Material
 import Quickshell
 import Quickshell.Wayland
-import Clavis.Keyboard
 import qs.Common
 import qs.Services
 import qs.Widgets.common
@@ -17,7 +16,7 @@ PanelWindow {
     visible: true
     color: "transparent"
 
-    screen: Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+    screen: Quickshell.focusedScreen || (Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null)
     property int x: root.screen && root.screen.geometry ? root.screen.geometry.x : (root.screen ? root.screen.x : 0)
     property int y: root.screen && root.screen.geometry ? root.screen.geometry.y : (root.screen ? root.screen.y : 0)
     implicitWidth: root.screen && root.screen.geometry ? root.screen.geometry.width : (root.screen ? root.screen.width : 1920)
@@ -401,6 +400,10 @@ PanelWindow {
     function openSpotlight(requestedMode) {
         if (DockService.externalDragActive)
             return false;
+        const targetScreen = Quickshell.focusedScreen || (Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null);
+        if (targetScreen && root.screen !== targetScreen) {
+            root.screen = targetScreen;
+        }
         root.pendingWebUrl = "";
         root.pendingSearchActivation = null;
         SpotlightSearchService.cancelActivation();
@@ -424,6 +427,7 @@ PanelWindow {
             clipboardProvider.refresh();
         if (root.mode === "wallpapers")
             wallpaperProvider.refresh();
+        ApplicationService.checkAndUpdate();
         root.animateWindow(1);
         root.focusSpotlight();
         return true;

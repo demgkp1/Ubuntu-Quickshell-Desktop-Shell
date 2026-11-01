@@ -17,6 +17,14 @@ import stat
 import sys
 import tempfile
 import time
+import ctypes
+
+try:
+    PR_SET_PDEATHSIG = 1
+    libc = ctypes.CDLL("libc.so.6")
+    libc.prctl(PR_SET_PDEATHSIG, signal.SIGTERM)
+except Exception:
+    pass
 
 import niri_config as config
 import niri_outputs as outputs
@@ -342,6 +350,12 @@ def run(request):
         pid=os.fork()
         if pid==0:
             os.setsid()
+            try:
+                PR_SET_PDEATHSIG = 1
+                libc = ctypes.CDLL("libc.so.6")
+                libc.prctl(PR_SET_PDEATHSIG, signal.SIGTERM)
+            except Exception:
+                pass
             null=os.open(os.devnull,os.O_RDWR)
             for stream in (0,1,2): os.dup2(null,stream)
             os.close(null)

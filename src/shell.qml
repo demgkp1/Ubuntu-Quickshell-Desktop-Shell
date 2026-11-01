@@ -30,9 +30,10 @@ ShellRoot {
 
         Component.onCompleted: {
             Qt.callLater(() => {
+                const firstBar = barVariants && barVariants.instances.length > 0 ? barVariants.instances[0] : null;
                 console.warn("================ M4 DUAL HOST WINDOW VALIDATION ================");
-                console.warn("[M4 TopBar Host] width: " + (barWindow ? barWindow.width : 0) + ", height: " + (barWindow ? barWindow.height : 0));
-                console.warn("[M4 TopBar Host] screen: " + (barWindow && barWindow.screen ? barWindow.screen.name : "none"));
+                console.warn("[M4 TopBar Host] width: " + (firstBar ? firstBar.width : 0) + ", height: " + (firstBar ? firstBar.height : 0));
+                console.warn("[M4 TopBar Host] screen: " + (firstBar && firstBar.screen ? firstBar.screen.name : "none"));
                 console.warn("[M4 Sidebar Host] width: " + (sidebarHost ? sidebarHost.width : 0) + ", height: " + (sidebarHost ? sidebarHost.height : 0));
                 console.warn("[M4 Sidebar Host] screen: " + (sidebarHost && sidebarHost.screen ? sidebarHost.screen.name : "none"));
                 console.warn("[M4 Initial State] quickSettingsOpen: " + WidgetState.quickSettingsOpen);
@@ -41,17 +42,17 @@ ShellRoot {
         }
 
 
-        Connections {
-            target: WidgetState
-            function onQuickSettingsOpenChanged() {
-                console.warn("[M4 State Transition] WidgetState.quickSettingsOpen changed to:", WidgetState.quickSettingsOpen);
-            }
-        }
     }
 
-    // Top permanent horizontal bar host window
-    HorizontalBarWindow {
-        id: barWindow
+    // Track A: Per-screen horizontal top bar variants
+    Variants {
+        id: barVariants
+        model: Quickshell.screens
+
+        HorizontalBarWindow {
+            required property var modelData
+            screen: modelData
+        }
     }
 
     // Fullscreen transparent overlay sidebar host window
@@ -95,6 +96,7 @@ ShellRoot {
     // Spotlight Launcher Host Window
     LauncherWindow {
         id: spotlightLauncher
+        Component.onCompleted: ApplicationService.openLauncherHandler = () => spotlightLauncher.toggleWindow()
     }
 
     IpcHandler {
@@ -254,14 +256,6 @@ ShellRoot {
 
         function open(): string {
             return sessionLocker.open();
-        }
-
-        function unlock(): string {
-            return sessionLocker.unlock();
-        }
-
-        function close(): string {
-            return sessionLocker.close();
         }
 
         function isLocked(): bool {

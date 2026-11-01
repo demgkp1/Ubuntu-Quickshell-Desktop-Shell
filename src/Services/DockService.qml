@@ -3,8 +3,6 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import Clavis.Files
-import Clavis.Niri
 import qs.Common
 import qs.Services
 import "../Common/functions/DockModel.js" as DockModel

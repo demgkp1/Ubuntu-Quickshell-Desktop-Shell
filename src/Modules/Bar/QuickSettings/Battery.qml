@@ -11,7 +11,7 @@ Item {
     id: root
 
     property bool vertical: false
-    readonly property bool hasPhysicalBattery: PowerService.present && !isNaN(PowerService.percentage)
+    readonly property bool hasPhysicalBattery: PowerService.hasPhysicalBattery && PowerService.present && !isNaN(PowerService.percentage)
     readonly property bool valueAvailable: root.hasPhysicalBattery && Format.isNumber(PowerService.percentage)
     readonly property real percentage: root.valueAvailable ? Math.max(0, Math.min(100,
                                                                                   PowerService.percentage
@@ -88,6 +88,10 @@ Item {
                                    + 8) : 0
     implicitHeight: visible ? (root.vertical ? Math.max(Sizes.barControlCircleSize, batteryContent.implicitHeight) :
                                     Sizes.barControlCircleSize) : 0
+    Layout.preferredWidth: visible ? implicitWidth : 0
+    Layout.preferredHeight: visible ? implicitHeight : 0
+    Layout.fillWidth: false
+    Layout.fillHeight: false
     Accessible.name: root.tooltipText
     Accessible.role: Accessible.StaticText
 
@@ -97,24 +101,27 @@ Item {
         columns: root.vertical ? 1 : 2
         rowSpacing: 4
         columnSpacing: Sizes.barLabelSpacing
+        visible: root.visible
+
         MaterialSymbol {
-            Layout.preferredWidth: Sizes.barControlCircleSize
-            Layout.preferredHeight: Sizes.barControlCircleSize
+            Layout.preferredWidth: root.visible ? Sizes.barControlCircleSize : 0
+            Layout.preferredHeight: root.visible ? Sizes.barControlCircleSize : 0
             Layout.alignment: Qt.AlignCenter
-            text: !root.valueAvailable ? "battery_android_question" : PowerService.charging
+            visible: root.visible
+            text: !root.hasPhysicalBattery ? "" : (!root.valueAvailable ? "battery_android_question" : PowerService.charging
                                          ? "battery_android_bolt" : root.percentage >= 95
                                            ? "battery_android_full" : "battery_android_" + Math.max(0,
                                                                                                     Math.min(6,
                                                                                                              Math.floor(
                                                                                                                  root.percentage
-                                                                                                                 * 7 / 100)))
+                                                                                                                 * 7 / 100))))
             iconSize: Sizes.barIconSize
             fill: 1
             color: root.foregroundColor
         }
         Text {
             Layout.alignment: Qt.AlignCenter
-            visible: root.showValue
+            visible: root.visible && root.showValue
             text: root.valueAvailable ? root.displayText + "%" : root.displayText
             font.family: Fonts.numeric
             font.pixelSize: 12
@@ -126,12 +133,13 @@ Item {
         id: hoverArea
 
         anchors.fill: parent
-        hoverEnabled: true
+        hoverEnabled: root.visible
+        enabled: root.visible
         acceptedButtons: Qt.NoButton
     }
 
     PopupToolTip {
-        extraVisibleCondition: hoverArea.containsMouse
+        extraVisibleCondition: root.visible && hoverArea.containsMouse
         text: root.tooltipText
     }
 }

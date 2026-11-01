@@ -160,15 +160,15 @@ TaskCard:
 
 ## 七、 四大质量防护机制 (Quality Assurance)
 
-1. **数据桩先行协议 (Contract-First Mocking)**：
-   - 移植任何 UI 模块前，优先在 `Services/` 提供具备确定性数据的 Mock 数据源（模拟图一中的音量 35%、网络 aaa111 等）；
-   - 先确保 UI 呈现出与基准图 100% 像素级一致的视觉，视觉通过后再单独把 Mock 替换为真实系统后端，杜绝 UI 被底层连带破坏。
+1. **生命周期隔离的组件验证协议 (Isolated Component Mocking Protocol)**：
+   - 本地开发或单一 UI 视觉验证若需数据桩，必须且仅能严格保存在 `tests/mocks/` 隔离目录中；
+   - 严禁将任何 Mock 数据桩或空函数 `{}` 提交混入 `src/Services/` 生产目录。合并至主干时，必须保证全功能接入真实系统服务（D-Bus、sysfs、EWMH 或伴生守护进程）。
 2. **原子 Git 检查点机制 (Atomic Git Checkpoints)**：
    - 每个任务卡开始前建立 Git commit 检查点；子任务出现污染时，毫秒级 `git reset --hard` 回滚。
 3. **金标准视觉基准对照 (Visual Truth Benchmarks)**：
    - 严格以 `docs/visual_benchmarks/` 中的截图为准绳进行视觉对照。
 4. **自动化审计与冒烟脚本**：
-   - `scripts/audit_diff.sh`：自动对比提取差异；
+   - `scripts/verify_tenets.sh`：自动化执行四大军规合规性门禁扫描；
    - `scripts/smoke_test.sh`：3 秒瞬时拉起测试并立刻干净退出，**绝对零守护、零常驻、零开机自启**。
 
 ---
@@ -192,7 +192,7 @@ timeline
 
 ### 1. 合成器协议鸿沟与 XCB 退化机理
 - **原版运行机制**：原版 Clavis 基于支持 `wlr-layer-shell-unstable-v1` 协议的 Wayland 合成器（如 Niri/Hyprland）。在这些合成器中，Quickshell 的 `PanelWindow` 作为 Layer Surface 直接与合成器通信，合成器自动解析 QML `anchors` 并完成全屏或边缘贴靠，原生支持非矩形输入穿透，且全局运行在 GPU 硬件加速管线上；
-- **Ubuntu 目标环境**：Ubuntu 24.04 默认使用 **GNOME 46 (Mutter)**。Mutter 原生不支持 `wlr-layer-shell` 协议。Quickshell 在检测到环境时，退化为通过 `QT_QPA_PLATFORM="xcb"`（X11）以无边框、置顶的 override-redirect 窗口运行，且通常运行在 CPU 软渲染模式（`QT_QUICK_BACKEND="software"`）；
+- **Ubuntu 目标环境**：Ubuntu 24.04 默认使用 **GNOME 46 (Mutter)**。Mutter 原生不支持 `wlr-layer-shell` 协议。Quickshell 在检测到环境时，通过 `QT_QPA_PLATFORM="xcb"`（X11）以无边框、置顶的 override-redirect 窗口运行。**必须确保 X11 合成器配置 32-bit ARGB TrueColor Visual，全系统以 GPU 硬件加速管线为唯一基准，严禁无脑强制 CPU 软件光栅破坏液态动效与毛玻璃质感**；
 - **核心认知更新：规避“机械 1:1 陷阱”**：
   > [!IMPORTANT]
   > **“1:1 移植”指的是 UI 视觉、排版 Token、组件层级与动效参数的 100% 镜像克隆；绝不等于对底层 Window 宿主与系统守护通信代码的盲目照抄！**
@@ -246,14 +246,16 @@ flowchart TD
     Screen -->|"显式绑定 y: screen.geometry.y (0), 贴顶置顶"| KeystoneWin
 ```
 
-#### (1) 顶栏宿主：`HorizontalBarWindow.qml`
+#### (1) 顶栏宿主：`HorizontalBarWindow.qml` (支持 Variants 多屏派生)
 - **定位**：常驻桌面顶部，提供时间、状态胶囊与快捷设置入口；
 - **几何与协议规范**：
   ```qml
-  screen: Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
-  x: root.screen && root.screen.geometry ? root.screen.geometry.x : 0
-  y: root.screen && root.screen.geometry ? root.screen.geometry.y : 0
-  width: root.screen && root.screen.geometry ? root.screen.geometry.width : 1920
+  // 必须通过 Variants { model: Quickshell.screens } 动态派生，绑定当前物理屏幕
+  required property var modelData // 当前物理 Screen 实例
+  screen: modelData
+  x: screen && screen.geometry ? screen.geometry.x : 0
+  y: screen && screen.geometry ? screen.geometry.y : 0
+  width: screen && screen.geometry ? screen.geometry.width : 1920
   height: Sizes.barVisualThickness + Sizes.barOuterEdgeMargin
   exclusiveZone: 0 // 消除 EWMH Strut 对灵动岛的 52px 挤压
   ```
@@ -262,12 +264,14 @@ flowchart TD
 - **定位**：覆盖整个屏幕的透明捕获层；
 - **几何与输入掩码规范**：
   ```qml
-  screen: Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
-  x: root.screen && root.screen.geometry ? root.screen.geometry.x : 0
-  y: root.screen && root.screen.geometry ? root.screen.geometry.y : 0
-  width: root.screen && root.screen.geometry ? root.screen.geometry.width : 1920
-  height: root.screen && root.screen.geometry ? root.screen.geometry.height : 1080
-  visible: retainedScreen !== null || fallbackScreen !== null // 保持常驻映射，杜绝动态 Map 性能雪崩
+  // 防御性安全边界计算
+  readonly property int safeWidth: screen && screen.geometry && screen.geometry.width > 0 ? screen.geometry.width : 1920
+  readonly property int safeHeight: screen && screen.geometry && screen.geometry.height > 0 ? screen.geometry.height : 1080
+  x: screen && screen.geometry ? screen.geometry.x : 0
+  y: screen && screen.geometry ? screen.geometry.y : 0
+  width: safeWidth
+  height: safeHeight
+  visible: true // 保持常驻映射，杜绝动态 Map 性能雪崩
 
   Item {
       id: emptyMaskRegion

@@ -9,7 +9,7 @@ Rectangle {
     property string icon: ""
     property alias headerTools: headerToolsLayout.data
     default property alias content: contentLayout.data
-    property var closeAction: () => {}
+    property var closeAction: null
     property bool showBackButton: false
     property var backAction: closeAction
 
@@ -33,7 +33,7 @@ Rectangle {
                 accessibleName: qsTr("Back to Quick Settings")
                 hoverStateLayerColor: Appearance.colors.colLayer2Hover
                 pressedStateLayerColor: Appearance.colors.colLayer2Active
-                onClicked: root.backAction()
+                onClicked: if (typeof root.backAction === "function") root.backAction()
             }
 
             MaterialSymbol {

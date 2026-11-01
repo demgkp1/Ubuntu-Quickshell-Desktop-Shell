@@ -31,7 +31,10 @@ Singleton {
     readonly property string xdgConfigHome: root.absoluteEnvironment("XDG_CONFIG_HOME") || homeDir + "/.config"
     readonly property string xdgDataHome: root.absoluteEnvironment("XDG_DATA_HOME") || homeDir + "/.local/share"
     readonly property string binHome: root.absoluteEnvironment("CLAVIS_BIN_HOME") || homeDir + "/.local/bin"
-    readonly property string stableKey: root.absoluteEnvironment("CLAVIS_KEY") || "key"
+    readonly property string stableKey: {
+        const envKey = root.absoluteEnvironment("CLAVIS_KEY");
+        return envKey !== "" ? envKey : systemScriptsDir + "/clavis_key.py";
+    }
     readonly property string configHome: root.absoluteEnvironment("CLAVIS_CONFIG_HOME") || xdgConfigHome + "/clavis"
     readonly property string dataHome: root.absoluteEnvironment("CLAVIS_DATA_HOME") || xdgDataHome + "/clavis"
     readonly property string stateHome: root.absoluteEnvironment("CLAVIS_STATE_HOME") || (root.absoluteEnvironment("XDG_STATE_HOME") || homeDir + "/.local/state") + "/clavis"

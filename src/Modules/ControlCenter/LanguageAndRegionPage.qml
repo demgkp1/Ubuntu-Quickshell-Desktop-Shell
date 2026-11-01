@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Layouts
-import Clavis.WeatherMap
 import qs.Common
 import qs.Services
 import qs.Widgets.common

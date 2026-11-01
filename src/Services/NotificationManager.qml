@@ -11,6 +11,7 @@ Singleton {
     id: root
 
     readonly property int defaultPopupTimeoutMs: 7000
+    readonly property int maxHistoryCount: 50
     readonly property string notificationsDir: Paths.stateHome + "/notifications"
     readonly property string filePath: notificationsDir + "/notifications.json"
     readonly property bool silent: UiPreferences.dndEnabled
@@ -161,6 +162,7 @@ Singleton {
                                                            interval: root.defaultPopupTimeoutMs
                                                        });
         root.list = [...root.list, notif];
+        root.enforceHistoryCapacity();
         if (notif.popup)
             root.unread++;
         root.trimPopupList(3);
@@ -244,6 +246,7 @@ Singleton {
 
             root.list = [...root.list.filter(notif => notif.serverNotificationId !== notification.id),
                          newNotifObject,];
+            root.enforceHistoryCapacity();
             replaced.forEach(notif => Qt.callLater(() => notif.destroy()));
             root.trimPopupList(3);
             root.saveNotifications();
@@ -292,6 +295,7 @@ Singleton {
                                                        });
                 });
                 root.idOffset = maxId;
+                root.enforceHistoryCapacity();
                 root.saveNotifications();
                 root.initDone();
             } catch (error) {
@@ -450,6 +454,19 @@ Singleton {
             root.hidePopup(popups[i]);
         if (popups.length > maxCount)
             root.triggerListChange();
+    }
+
+    function enforceHistoryCapacity() {
+        if (root.list.length <= root.maxHistoryCount)
+            return;
+        const sorted = [...root.list].sort((a, b) => b.receivedAt - a.receivedAt);
+        const toKeep = sorted.slice(0, root.maxHistoryCount);
+        const toPrune = sorted.slice(root.maxHistoryCount);
+        root.list = toKeep;
+        toPrune.forEach(notif => {
+            root.stopPopupTimer(notif);
+            Qt.callLater(() => notif.destroy());
+        });
     }
 
     function setSilent(value) {

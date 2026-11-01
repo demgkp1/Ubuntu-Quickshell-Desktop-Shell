@@ -1,9 +1,8 @@
 import QtQuick
 import Qt5Compat.GraphicalEffects
-import Clavis.WeatherMap
 import qs.Common
-import qs.Modules.Map
 import qs.Services
+import qs.Modules.Map
 import qs.Widgets.common
 
 Rectangle {

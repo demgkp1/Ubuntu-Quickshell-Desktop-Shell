@@ -14,7 +14,7 @@ Singleton {
 
     function open(screen) {
         console.log("PowerMenuService.open requested:", screen);
-        const resolved = screen || (Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null);
+        const resolved = screen || Quickshell.focusedScreen || (Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null);
         WidgetState.closeAllPopups();
         targetScreenName = (resolved && resolved.name) ? String(resolved.name) : "";
         active = true;

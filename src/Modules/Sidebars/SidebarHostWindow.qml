@@ -60,9 +60,11 @@ PanelWindow {
         const requested = Brightness.getScreenByName(openingScreenName || (role === "quicksettings"
                                                                            ? WidgetState.quickSettingsScreenName :
                                                                              ""));
-        const nextScreen = requested || Brightness.activeScreen;
-        if (nextScreen)
+        const nextScreen = requested || Quickshell.focusedScreen || Brightness.activeScreen || root.fallbackScreen;
+        if (nextScreen) {
             retainedScreenName = nextScreen.name;
+            root.screen = nextScreen;
+        }
     }
 
     function openOnScreen(role, view, screenName) {
@@ -80,6 +82,7 @@ PanelWindow {
 
         openingScreenName = requestedScreen.name;
         retainedScreenName = requestedScreen.name;
+        root.screen = requestedScreen;
         if (role === "dashboard") {
             WidgetState.dashboardSidebarView = view;
         } else {
@@ -92,13 +95,14 @@ PanelWindow {
     }
 
     readonly property bool anySidebarOpen: WidgetState.dashboardSidebarOpen || WidgetState.quickSettingsOpen
-    readonly property var fallbackScreen: Brightness.activeScreen || (Quickshell.screens && Quickshell.screens.length > 0
+    readonly property bool isPresented: root.anySidebarOpen || (typeof dashboardSidebar !== "undefined" && dashboardSidebar.panelPresented) || (typeof quickSettingsSidebar !== "undefined" && quickSettingsSidebar.panelPresented)
+    readonly property var fallbackScreen: Quickshell.focusedScreen || (Brightness && Brightness.activeScreen) || (Quickshell.screens && Quickshell.screens.length > 0
                                                                       ? Quickshell.screens[0] : null)
     // DPMS cycles can replace the Screen instance while preserving its name.
     property string retainedScreenName: ""
     readonly property var retainedScreen: Brightness.getScreenByName(retainedScreenName)
 
-    screen: Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
+    screen: retainedScreen || fallbackScreen
     property int x: root.screen && root.screen.geometry ? root.screen.geometry.x : (root.screen ? root.screen.x : 0)
     property int y: root.screen && root.screen.geometry ? root.screen.geometry.y : (root.screen ? root.screen.y : 0)
     implicitWidth: root.screen && root.screen.geometry ? root.screen.geometry.width : (root.screen ? root.screen.width : 1920)
@@ -123,7 +127,7 @@ PanelWindow {
     Binding {
         target: WidgetState
         property: "sidebarPresentationActive"
-        value: root.anySidebarOpen || dashboardSidebar.panelPresented || quickSettingsSidebar.panelPresented
+        value: root.isPresented
     }
 
     IpcHandler {
@@ -149,7 +153,7 @@ PanelWindow {
     }
 
     mask: Region {
-        item: root.anySidebarOpen ? interactionRegion : emptyMaskRegion
+        item: root.isPresented ? interactionRegion : emptyMaskRegion
 
         HotCornerExclusionRegion {
             surfaceWidth: root.width

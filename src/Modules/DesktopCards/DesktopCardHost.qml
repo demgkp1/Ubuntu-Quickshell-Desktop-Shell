@@ -1,7 +1,6 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
-import Clavis.DesktopCards
 import qs.Common
 import qs.Services
 import qs.Widgets.common

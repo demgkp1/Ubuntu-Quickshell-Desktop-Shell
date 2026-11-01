@@ -9,7 +9,7 @@ Singleton {
 
     readonly property string colorsPath: Paths.generatedHome + "/clavis/colors.json"
     property string matugenScheme: "scheme-tonal-spot"
-    property string matugenMode: "light"
+    property string matugenMode: "dark"
     readonly property string effectiveMatugenMode: matugenMode.toLowerCase() === "light" ? "light" : "dark"
     property string currentWallpaperPreview: ""
     property real backgroundTransparency: 0

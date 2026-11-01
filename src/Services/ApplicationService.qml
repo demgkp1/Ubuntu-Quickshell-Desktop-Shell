@@ -2,12 +2,15 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Quickshell.Io
+import qs.Common
 import qs.Services
 
 Singleton {
     id: root
 
     property var applications: []
+    property var openLauncherHandler: null
     readonly property string settingsIconName: {
         const revision = typeof ThemeService !== "undefined" ? ThemeService.iconThemeRevision : 0;
         for (const name of ["preferences-system", "preferences-desktop"]) {
@@ -57,12 +60,29 @@ Singleton {
 
     readonly property var launcherApplications: applications.concat([launcherAppItem, settingsApplication, spaceApplication, smallSpaceApplication])
 
+    function _loadCache() {
+        try {
+            const raw = String(appCacheFile.text() || "").trim();
+            if (raw !== "") {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed) && parsed.length > 0)
+                    root.applications = parsed;
+            }
+        } catch (e) {
+            console.warn("ApplicationService cache load:", e);
+        }
+    }
+
     function launchCommand(command, workingDirectory) {
         const argv = Array.from(command || []);
         if (argv.length === 0 || !String(argv[0]).trim())
             return false;
 
-        Quickshell.execDetached(argv);
+        const launchArgs = argv[0] === "systemd-run"
+            ? argv
+            : ["systemd-run", "--user", "--scope", "--slice=app.slice"].concat(argv);
+
+        Quickshell.execDetached(launchArgs);
         return true;
     }
 
@@ -70,8 +90,11 @@ Singleton {
         if (!application || application.dragOnly)
             return false;
         if (application.id === root.launcherAppItem.id) {
-            Quickshell.execDetached(["/home/dkp/projects/Ubuntu Quickshell Desktop Shell/scripts/toggle_spotlight.sh"]);
-            return true;
+            if (typeof root.openLauncherHandler === "function") {
+                root.openLauncherHandler();
+                return true;
+            }
+            return false;
         }
         if (application.id === root.settingsApplication.id) {
             if (typeof ControlCenterService !== "undefined" && ControlCenterService.openOrFocus)
@@ -111,7 +134,7 @@ Singleton {
         if (!value)
             return false;
         if (value === "trash:///" || value.startsWith("trash:")) {
-            Quickshell.execDetached(["/usr/bin/nautilus", "trash:///"]);
+            Quickshell.execDetached(["xdg-open", "trash:///"]);
             return true;
         }
         Quickshell.execDetached(["xdg-open", value]);
@@ -126,7 +149,19 @@ Singleton {
         return String(application.id || "").trim() !== "" && String(application.execString || application.exec || "").trim() !== "";
     }
 
-    function refresh() {}
+    function refresh() {
+        if (!scannerProcess.running) {
+            scannerProcess.command = ["python3", Paths.systemScriptsDir + "/app_scanner.py"];
+            scannerProcess.running = true;
+        }
+    }
+
+    function checkAndUpdate() {
+        if (!scannerProcess.running) {
+            scannerProcess.command = ["python3", Paths.systemScriptsDir + "/app_scanner.py", "--check-mtime"];
+            scannerProcess.running = true;
+        }
+    }
 
     function getVisibleApplications() {
         return root.applications.slice();
@@ -143,9 +178,8 @@ Singleton {
         const withoutSuffix = value.endsWith(".desktop") ? value.substring(0, value.length - ".desktop".length) : value;
         for (const application of root.applications) {
             const id = String(application.id || "");
-            if (id === value || id === withoutSuffix || id === withoutSuffix + ".desktop") {
+            if (id === value || id === withoutSuffix || id === withoutSuffix + ".desktop")
                 return application;
-            }
         }
         return null;
     }
@@ -169,5 +203,27 @@ Singleton {
         if (entry.icon)
             return root.iconSource(entry.icon);
         return root.iconSource("");
+    }
+
+    Component.onCompleted: {
+        root._loadCache();
+        root.refresh();
+    }
+
+    FileView {
+        id: appCacheFile
+        path: Paths.cacheHome + "/applications.json"
+        blockLoading: true
+        watchChanges: false
+        onLoaded: root._loadCache()
+    }
+
+    Process {
+        id: scannerProcess
+        command: ["python3", Paths.systemScriptsDir + "/app_scanner.py"]
+        onExited: exitCode => {
+            if (exitCode === 0)
+                appCacheFile.reload();
+        }
     }
 }

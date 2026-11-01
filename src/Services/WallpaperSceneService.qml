@@ -2,7 +2,6 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
-import Clavis.Niri
 import qs.Common
 import "../Common/SidebarPolicy.js" as SidebarPolicy
 import qs.Services

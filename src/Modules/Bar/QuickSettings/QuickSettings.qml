@@ -56,6 +56,11 @@ TopBarPill {
                 required property string modelData
 
                 sourceComponent: root.componentFor(componentLoader.modelData)
+                visible: item ? (item.visible && (item.hasPhysicalBattery === undefined || item.hasPhysicalBattery)) : (modelData !== "battery")
+                Layout.preferredWidth: visible ? (item ? item.implicitWidth : -1) : 0
+                Layout.preferredHeight: visible ? (item ? item.implicitHeight : -1) : 0
+                Layout.fillWidth: false
+                Layout.fillHeight: false
             }
         }
     }

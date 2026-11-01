@@ -12,6 +12,7 @@ Item {
     property bool vertical: false
     readonly property bool showValue: PersonalizationConfig.barShowValues
     readonly property var monitor: Brightness.getMonitorForScreen(screen)
+    readonly property bool isSoftwareDimmer: !Brightness.hasHardwareBacklight
     readonly property real brightnessValue: monitor ? monitor.brightness : Brightness.brightnessValue
 
     implicitWidth: mouseArea.implicitWidth
@@ -42,7 +43,7 @@ Item {
                     trackColor: Appearance.colors.colLayer2Hover
                     handleColor: Appearance.colors.colOnSurface
                     iconColor: Appearance.colors.colOnSurface
-                    icon: "brightness_medium"
+                    icon: root.isSoftwareDimmer ? "wb_twilight" : "brightness_medium"
                 }
 
                 Text {
@@ -75,6 +76,6 @@ Item {
     PopupToolTip {
         id: tooltip
         extraVisibleCondition: mouseArea.pointerHovered
-        text: qsTr("Brightness: ") + Math.round(root.brightnessValue * 100) + qsTr("%\nScroll to adjust")
+        text: (root.isSoftwareDimmer ? qsTr("Software Dimming: ") : qsTr("Brightness: ")) + Math.round(root.brightnessValue * 100) + qsTr("%\nScroll to adjust")
     }
 }

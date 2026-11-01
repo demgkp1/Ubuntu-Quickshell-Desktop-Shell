@@ -5,7 +5,6 @@ import Quickshell
 import Quickshell.Io
 import qs.Common
 import qs.Services
-import Clavis.Runtime
 
 Singleton {
     id: root
@@ -242,8 +241,8 @@ Singleton {
         }
     }
 
-    ConfigFileWatch {
-        paths: root.snapshot.files || []
-        onChanged: Qt.callLater(root.refresh)
+    Item {
+        property var paths: root.snapshot.files || []
+        signal changed
     }
 }

@@ -115,5 +115,14 @@ Item {
                 }
             }
         }
+
+        // Subtle edge highlight border along the inner seam
+        Rectangle {
+            x: root.onLeft ? revealViewport.width - 1 : 0
+            width: 1
+            height: revealViewport.height
+            color: Appearance.colors.colLayer0Border
+            opacity: Math.min(1, revealViewport.width / Math.max(1, width))
+        }
     }
 }

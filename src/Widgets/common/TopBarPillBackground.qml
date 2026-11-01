@@ -28,7 +28,7 @@ Item {
         anchors.fill: parent
         color: root.fillColor
         radius: root.cornerRadius
-        visible: true
+        visible: false
     }
 
     MultiEffect {

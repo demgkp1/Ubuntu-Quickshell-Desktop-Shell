@@ -70,6 +70,14 @@ if [[ "$mode" != dark && "$mode" != light ]]; then
     exit 2
 fi
 if ! command -v matugen >/dev/null 2>&1; then
+    for candidate in /nix/store/*-matugen-*/bin/matugen "$HOME/.local/bin/matugen"; do
+        if [[ -x "$candidate" ]]; then
+            export PATH="$(dirname -- "$candidate"):$PATH"
+            break
+        fi
+    done
+fi
+if ! command -v matugen >/dev/null 2>&1; then
     printf 'matugen is required but was not found in PATH\n' >&2
     exit 1
 fi

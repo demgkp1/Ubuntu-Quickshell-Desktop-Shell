@@ -485,7 +485,7 @@ Singleton {
     property var barLeadingComponents: root.defaultBarLeadingComponents.slice()
     property var barTrailingComponents: root.defaultBarTrailingComponents.slice()
     property var quickSettingsComponents: root.defaultQuickSettingsComponents.slice()
-    property bool quickSettingsSlidersDetailed: true
+    property bool quickSettingsSlidersDetailed: false
     property string keystonePosition: "top"
     property bool keystoneCapsLockOsd: true
     property bool keystoneNumLockOsd: true
@@ -1976,7 +1976,8 @@ Singleton {
             "sidebar": {
                 "keepLoaded": root.keepSidebarsLoaded,
                 "dashboardSide": root.dashboardSidebarSide,
-                "quickSettingsSide": root.quickSettingsSidebarSide
+                "quickSettingsSide": root.quickSettingsSidebarSide,
+                "slidersDetailed": root.quickSettingsSlidersDetailed
             },
             "hotCorners": root.normalizedHotCornerActions(root.hotCornerActions),
             "desktopCards": {
@@ -2127,6 +2128,7 @@ Singleton {
         root.barLeadingComponents = barLayout.leading;
         root.barTrailingComponents = barLayout.trailing;
         root.quickSettingsComponents = root.normalizedQuickSettingsComponents(bar.quickSettingsComponents);
+        root.quickSettingsSlidersDetailed = typeof sidebar.slidersDetailed === "boolean" ? sidebar.slidersDetailed : false;
         root.keepSidebarsLoaded = sidebar.keepLoaded === undefined ? true : !!sidebar.keepLoaded;
         root.sidebarPositions = SidebarPolicy.restoredPositions(sidebar);
         root.hotCornerActions = root.normalizedHotCornerActions(parsed.hotCorners);

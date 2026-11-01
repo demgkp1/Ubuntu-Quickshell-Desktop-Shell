@@ -19,9 +19,11 @@ if [ -z "${XAUTHORITY:-}" ] && [ -f "$HOME/.Xauthority" ]; then
     export XAUTHORITY="$HOME/.Xauthority"
 fi
 
-# Mutter X11 & Qt software rasterization enforcement
-export QT_QUICK_BACKEND="software"
-export QT_QPA_PLATFORM="xcb"
+
+
+# Ubuntu GNOME 46 Mutter environment: Run via XWayland bridge (xcb)
+# to obtain EWMH _NET_WM_STRUT_PARTIAL exclusive docking and native window tracking.
+export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
 export XCURSOR_THEME="${XCURSOR_THEME:-Yaru}"
 export XCURSOR_SIZE="${XCURSOR_SIZE:-24}"
 export XCURSOR_PATH="${XCURSOR_PATH:-/usr/share/icons:$HOME/.icons}"

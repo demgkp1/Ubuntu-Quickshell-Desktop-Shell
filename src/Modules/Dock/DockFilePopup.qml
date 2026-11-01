@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
-import Clavis.Files
 import qs.Common
 import qs.Components
 import qs.Services

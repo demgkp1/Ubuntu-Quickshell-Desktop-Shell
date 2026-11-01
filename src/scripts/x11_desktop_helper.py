@@ -29,6 +29,14 @@ import ctypes
 import threading
 import subprocess
 
+# Ensure child process exits automatically when parent (Quickshell) dies
+try:
+    PR_SET_PDEATHSIG = 1
+    libc = ctypes.CDLL("libc.so.6")
+    libc.prctl(PR_SET_PDEATHSIG, signal.SIGTERM)
+except Exception:
+    pass
+
 # Load libX11
 try:
     x11 = ctypes.CDLL("libX11.so.6")
@@ -227,8 +235,8 @@ class X11Helper:
         notif_thread = threading.Thread(target=run_notification_monitor, daemon=True)
         notif_thread.start()
 
-        # Start Ayatana tray poll thread
-        ayatana_thread = threading.Thread(target=run_ayatana_poller, daemon=True)
+        # Start Ayatana tray GDBus signal watcher thread
+        ayatana_thread = threading.Thread(target=run_ayatana_watcher, daemon=True)
         ayatana_thread.start()
 
         # Emit initial window state
@@ -238,6 +246,18 @@ class X11Helper:
 
         while True:
             try:
+                # Always drain Xlib internal user-space event buffer before blocking in select()
+                # to prevent race conditions where events are buffered but the kernel socket is empty.
+                if x11.XPending(self.disp) > 0:
+                    changed = False
+                    while x11.XPending(self.disp) > 0:
+                        x11.XNextEvent(self.disp, ctypes.byref(event_buffer))
+                        ev_type = ctypes.c_int.from_buffer(event_buffer).value
+                        if ev_type == 28: # PropertyNotify
+                            changed = True
+                    if changed:
+                        safe_print({"event": "windows", "data": self.query_windows()})
+
                 r, _, _ = select.select([self.x_fd, sys.stdin.fileno()], [], [])
                 
                 if sys.stdin.fileno() in r:
@@ -281,77 +301,117 @@ class X11Helper:
                 sys.stderr.write(f"Error in x11 loop: {e}\n")
 
 
-# Ayatana Poller Thread
-def get_clean_ayatana_items():
+# Ayatana StatusNotifier GDBus Signal-Driven Watcher Thread
+def get_clean_ayatana_items_gdbus():
     try:
-        out = subprocess.check_output([
-            "busctl", "--user", "get-property", "org.kde.StatusNotifierWatcher",
-            "/StatusNotifierWatcher", "org.kde.StatusNotifierWatcher", "RegisteredStatusNotifierItems"
-        ], text=True, stderr=subprocess.DEVNULL)
-        parts = out.strip().split()
+        from gi.repository import Gio, GLib
+        bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+        res = bus.call_sync(
+            "org.kde.StatusNotifierWatcher",
+            "/StatusNotifierWatcher",
+            "org.freedesktop.DBus.Properties",
+            "Get",
+            GLib.Variant("(ss)", ("org.kde.StatusNotifierWatcher", "RegisteredStatusNotifierItems")),
+            None,
+            Gio.DBusCallFlags.NONE,
+            1000,
+            None
+        )
+        raw_items = res.get_child_value(0).get_variant().unpack()
         items = []
-        if len(parts) >= 3 and parts[0] == "as":
-            count = int(parts[1])
-            raw_items = parts[2:2+count]
-            for r in raw_items:
-                r = r.strip("\"").strip("\x27")
-                if "@" in r:
-                    bus, path = r.split("@", 1)
-                    try:
-                        def get_prop(prop_name):
-                            p = subprocess.check_output([
-                                "busctl", "--user", "get-property", bus, path,
-                                "org.kde.StatusNotifierItem", prop_name
-                            ], text=True, stderr=subprocess.DEVNULL).strip()
-                            if p.startswith("s \"") and p.endswith("\""):
-                                raw_str = p[3:-1]
-                                # Unescape octal characters e.g. \346\233\264...
-                                try:
-                                    return raw_str.encode("latin1").decode("unicode_escape").encode("latin1").decode("utf-8")
-                                except Exception:
-                                    return raw_str
-                            return p
-                        
-                        item_id = get_prop("Id") or path.split("/")[-1]
-                        title = get_prop("Title") or item_id
-                        icon = get_prop("IconName")
-                        if icon and icon.startswith("/"):
-                            icon = "file://" + icon
-                        items.append({
-                            "bus": bus,
-                            "path": path,
-                            "id": item_id,
-                            "title": title,
-                            "icon": icon or "system-run",
-                            "status": 1
-                        })
-                    except Exception:
-                        pass
+        for r in raw_items:
+            r = str(r).strip("\"").strip("'")
+            if "@" in r:
+                bus_name, path = r.split("@", 1)
+            else:
+                bus_name, path = r, "/StatusNotifierItem"
+            
+            def get_prop(prop_name):
+                try:
+                    val = bus.call_sync(
+                        bus_name, path,
+                        "org.freedesktop.DBus.Properties", "Get",
+                        GLib.Variant("(ss)", ("org.kde.StatusNotifierItem", prop_name)),
+                        None, Gio.DBusCallFlags.NONE, 500, None
+                    )
+                    return val.get_child_value(0).get_variant().unpack()
+                except Exception:
+                    return ""
+
+            item_id = get_prop("Id") or path.split("/")[-1]
+            title = get_prop("Title") or item_id
+            icon = get_prop("IconName")
+            if icon and str(icon).startswith("/"):
+                icon = "file://" + str(icon)
+            items.append({
+                "bus": bus_name,
+                "path": path,
+                "id": str(item_id),
+                "title": str(title),
+                "icon": str(icon or "system-run"),
+                "status": 1
+            })
         return items
     except Exception:
         return []
 
-def run_ayatana_poller():
+def run_ayatana_watcher():
     last_json = ""
-    while True:
+    def update():
+        nonlocal last_json
         try:
-            items = get_clean_ayatana_items()
+            items = get_clean_ayatana_items_gdbus()
             cur_json = json.dumps(items)
             if cur_json != last_json:
                 last_json = cur_json
                 safe_print({"event": "ayatana", "data": items})
         except Exception:
             pass
-        time.sleep(3)
+
+    # Initial snapshot
+    update()
+
+    try:
+        from gi.repository import Gio, GLib
+        bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+        loop = GLib.MainLoop()
+
+        def on_signal(*args):
+            update()
+
+        bus.signal_subscribe(
+            "org.kde.StatusNotifierWatcher",
+            "org.kde.StatusNotifierWatcher",
+            None,
+            "/StatusNotifierWatcher",
+            None,
+            Gio.DBusSignalFlags.NONE,
+            on_signal,
+            None
+        )
+        loop.run()
+    except Exception:
+        # Fallback with relaxed interval (15s) if GLib/Gio fails
+        while True:
+            update()
+            time.sleep(15)
 
 
 # Notification Interception Thread
 def run_notification_monitor():
+    def set_death():
+        try:
+            ctypes.CDLL("libc.so.6").prctl(1, signal.SIGTERM)
+        except Exception:
+            pass
+
     try:
+        import atexit
         proc = subprocess.Popen([
             "busctl", "--user", "monitor", "org.freedesktop.Notifications",
             "--match", "type='method_call',member='Notify'"
-        ], stdout=subprocess.PIPE, text=True, bufsize=1)
+        ], stdout=subprocess.PIPE, text=True, bufsize=1, preexec_fn=set_death)
+        atexit.register(lambda: proc.terminate() if proc.poll() is None else None)
     except Exception:
         return
 

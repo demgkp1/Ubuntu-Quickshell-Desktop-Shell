@@ -19,6 +19,12 @@ Scope {
         value: root.active
     }
 
+    Binding {
+        target: WidgetState
+        property: "sessionLocked"
+        value: root.active
+    }
+
     signal unlocked
     signal secured
 
@@ -40,14 +46,7 @@ Scope {
         return sessionLock.locked || capturePending;
     }
 
-    function close() {
-        return unlock();
-    }
 
-    function unlock() {
-        internalContext.finishUnlock();
-        return "UNLOCKED";
-    }
 
     function finishCapture(captureRequestId) {
         if (!capturePending || captureRequestId !== activeCaptureRequestId)
@@ -61,6 +60,9 @@ Scope {
     onActiveChanged: {
         SystemIdentityService.setUptimeConsumer("lock-screen", root.active);
         SystemMonitorService.setConsumerModules("lock-screen", root.active ? ["cpu", "memory", "disk"] : []);
+        if (root.active) {
+            WidgetState.closeAllPopups();
+        }
     }
     Component.onDestruction: {
         preLockCapture.cancel();

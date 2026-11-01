@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
-import Clavis.Cava
 import qs.Common
+import qs.Services
 import "RecordingFormat.js" as RecordingFormat
 
 Item {

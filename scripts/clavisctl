@@ -198,7 +198,7 @@ case "$cmd" in
             lock)
                 is_locked=$(call_ipc lock isLocked)
                 if [ "$is_locked" = "true" ]; then
-                    call_ipc lock close
+                    echo "Screen is locked; unlock requires PAM password authentication at the lock surface."
                 else
                     call_ipc lock open
                 fi

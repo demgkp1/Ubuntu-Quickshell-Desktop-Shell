@@ -1,20 +1,21 @@
 #!/usr/bin/env bash
 set -e
 
-# Project root directory
-PROJECT_DIR="/home/dkp/projects/Ubuntu Quickshell Desktop Shell"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Ensure Nix profile is loaded
-if [ -f "/home/dkp/.nix-profile/etc/profile.d/nix.sh" ]; then
-    . "/home/dkp/.nix-profile/etc/profile.d/nix.sh"
+if [ -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
+    . "$HOME/.nix-profile/etc/profile.d/nix.sh"
+elif [ -f "/nix/var/nix/profiles/default/etc/profile.d/nix.sh" ]; then
+    . "/nix/var/nix/profiles/default/etc/profile.d/nix.sh"
 fi
 
 # Cursor environment variables to enforce system Yaru arrow cursor
 export XCURSOR_THEME="Yaru"
 export XCURSOR_SIZE="24"
-export XCURSOR_PATH="/usr/share/icons:/home/dkp/.icons"
-export QT_QUICK_BACKEND="software"
-export QT_QPA_PLATFORM="xcb"
+export XCURSOR_PATH="/usr/share/icons:$HOME/.icons"
+export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
 export QML2_IMPORT_PATH="$PROJECT_DIR/imports:${QML2_IMPORT_PATH:-}"
 export GIO_EXTRA_MODULES="/usr/lib/x86_64-linux-gnu/gio/modules:${GIO_EXTRA_MODULES:-}"
 

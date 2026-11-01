@@ -10,7 +10,7 @@ import qs.Widgets.common
 PanelWindow {
     id: root
 
-    required property var targetScreen
+    property var targetScreen: null
     readonly property real buttonSize: Math.max(72, Math.min(128, (width - 112 - actionRow.spacing * 5) / 6))
 
     property int selectedIndex: 0
@@ -56,11 +56,11 @@ PanelWindow {
         }
     ]
 
-    screen: targetScreen || (Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null)
-    property int x: targetScreen && targetScreen.geometry ? targetScreen.geometry.x : 0
-    property int y: targetScreen && targetScreen.geometry ? targetScreen.geometry.y : 0
-    implicitWidth: targetScreen && targetScreen.geometry ? targetScreen.geometry.width : 1920
-    implicitHeight: targetScreen && targetScreen.geometry ? targetScreen.geometry.height : 1080
+    screen: targetScreen || Quickshell.focusedScreen || (Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null)
+    property int x: root.screen && root.screen.geometry ? root.screen.geometry.x : 0
+    property int y: root.screen && root.screen.geometry ? root.screen.geometry.y : 0
+    implicitWidth: root.screen && root.screen.geometry ? root.screen.geometry.width : 1920
+    implicitHeight: root.screen && root.screen.geometry ? root.screen.geometry.height : 1080
 
     // Persistent mapping under Mutter X11 to avoid compositor recreate/unmap failures.
     visible: true

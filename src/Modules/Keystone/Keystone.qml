@@ -14,6 +14,10 @@ Item {
 
     function invoke(methodName): string {
         console.warn("[Keystone.qml] invoke called for:", methodName);
+        if (WidgetState.sessionLocked) {
+            console.warn("[Keystone.qml] invoke suppressed: session is locked");
+            return "SESSION_LOCKED";
+        }
         if (!styleLoader.item || typeof styleLoader.item[methodName] !== "function") {
             console.warn("[Keystone.qml] invoke: styleLoader.item is unavailable or method missing");
             return "KEYSTONE_UNAVAILABLE";

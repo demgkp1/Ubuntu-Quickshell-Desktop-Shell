@@ -3,6 +3,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs.Common
 
 Singleton {
     id: root
@@ -10,7 +11,7 @@ Singleton {
     readonly property int supportedSchemaVersion: 1
     property string commandName: {
         const configured = String(Quickshell.env("CLAVIS_KEY") || "").trim();
-        return configured !== "" ? configured : "key";
+        return configured !== "" ? configured : Paths.stableKey;
     }
     property var system: ({})
     property bool ready: true
@@ -147,7 +148,8 @@ Singleton {
         blockLoading: true
         onLoaded: root._finishUptimeRead()
         onLoadFailed: error => {
-            return console.warn("SystemIdentityService /proc/uptime:", error);
+            root._uptimeBaseReady = false;
+            console.warn("SystemIdentityService /proc/uptime:", error);
         }
     }
 

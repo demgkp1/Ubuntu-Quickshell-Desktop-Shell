@@ -1,5 +1,5 @@
 import QtQuick
-import Clavis.Files
+import qs.Services
 import qs.Components
 
 Item {

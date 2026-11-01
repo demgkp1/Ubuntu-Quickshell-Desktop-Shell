@@ -16,7 +16,6 @@ if [ -z "${XAUTHORITY:-}" ] && [ -f "$HOME/.Xauthority" ]; then
     export XAUTHORITY="$HOME/.Xauthority"
 fi
 
-export QT_QUICK_BACKEND="software"
 export QT_QPA_PLATFORM="xcb"
 export XCURSOR_THEME="${XCURSOR_THEME:-Yaru}"
 export XCURSOR_SIZE="${XCURSOR_SIZE:-24}"

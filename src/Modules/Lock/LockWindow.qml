@@ -15,10 +15,10 @@ PanelWindow {
     readonly property bool isLocked: lockController.locked
 
     screen: targetScreen || (Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null)
-    property int x: targetScreen && targetScreen.geometry ? targetScreen.geometry.x : 0
-    property int y: targetScreen && targetScreen.geometry ? targetScreen.geometry.y : 0
-    implicitWidth: targetScreen && targetScreen.geometry ? targetScreen.geometry.width : 1920
-    implicitHeight: targetScreen && targetScreen.geometry ? targetScreen.geometry.height : 1080
+    property int x: targetScreen && targetScreen.geometry ? targetScreen.geometry.x : (targetScreen ? targetScreen.x : 0)
+    property int y: targetScreen && targetScreen.geometry ? targetScreen.geometry.y : (targetScreen ? targetScreen.y : 0)
+    implicitWidth: targetScreen && targetScreen.geometry ? targetScreen.geometry.width : (targetScreen ? targetScreen.width : 1920)
+    implicitHeight: targetScreen && targetScreen.geometry ? targetScreen.geometry.height : (targetScreen ? targetScreen.height : 1080)
 
     // Persistent mapping under Mutter X11 to avoid compositor recreate/unmap failures.
     visible: true
@@ -51,6 +51,7 @@ PanelWindow {
         target: root
         function onIsLockedChanged() {
             if (root.isLocked) {
+                WidgetState.closeAllPopups();
                 Qt.callLater(() => {
                     interactionHost.forceActiveFocus(Qt.OtherFocusReason);
                 });

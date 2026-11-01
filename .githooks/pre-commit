@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# Git Pre-Commit Hook: Automated Ground-Truth & Tenets Gating
+# Enforces Zero Violations and Debt Non-Regression before any commit is allowed.
+# ==============================================================================
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+echo "=== [Git Hook] Pre-Commit Ground-Truth & Tenets Verification ==="
+
+"$REPO_ROOT/scripts/verify_tenets.sh"
+"$REPO_ROOT/.agents/skills/desktop-shell-engineering-discipline/scripts/audit_ground_truth.sh"
+
+echo "=== [Git Hook] Verification Passed. Commit Allowed. ==="

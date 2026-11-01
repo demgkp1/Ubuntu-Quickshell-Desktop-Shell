@@ -1,8 +1,7 @@
 pragma Singleton
 import QtQuick
 import Quickshell
-import Clavis.Niri
-import Clavis.WindowPreview
+import qs.Services
 
 Singleton {
     id: root
@@ -78,16 +77,41 @@ Singleton {
     }
     Component.onDestruction: backend.close()
 
-    WindowPreviewManager {
+    QtObject {
         id: backend
-        onCapturesChanged: root.revision++
-        onSnapshotFinished: identifier => {
-            const pending = root._snapshots[identifier];
-            delete root._snapshots[identifier];
-            if (pending && root.connected && pending.generation === Niri.connectionGeneration)
-                pending.callback();
+        readonly property bool supported: false
+        readonly property bool ready: false
+        readonly property string error: ""
+        readonly property int captureCount: 0
+        function setTargets(consumer, ids) {
+            return false;
+        }
+        function release(consumer) {
+            return false;
+        }
+        function captureFor(id) {
+            return null;
+        }
+        function frameFor(id) {
+            return null;
+        }
+        function requestSnapshot(key) {
+            return false;
+        }
+        function setWindows(w, m) {
+            return false;
+        }
+        function prefetch(id) {
+            return false;
+        }
+        function open(display) {
+            return false;
+        }
+        function close() {
+            return false;
         }
     }
+
     Connections {
         target: Niri
         function onWindowsChanged() {
@@ -97,7 +121,6 @@ Singleton {
     Timer {
         interval: 3000
         repeat: true
-        // Missing protocols are a stable capability result, not a retry loop.
         running: root.connected && !backend.ready && backend.error !== ""
         onTriggered: root.connectBackend()
     }

@@ -68,13 +68,6 @@ Item {
     implicitWidth: implicitSize
     implicitHeight: implicitSize
 
-    function star(points, innerRadius, cornerRadius, rotation) {
-        return null;
-    }
-
-    function regularPolygon(points) {
-        return null;
-    }
 
     Rectangle {
         id: visualShape

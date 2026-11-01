@@ -256,7 +256,7 @@ Singleton {
     }
 
     function _streamCommand(modules) {
-        return ["python3", Paths.shellDir + "/../scripts/sysmon_stream.py"];
+        return ["python3", Paths.systemScriptsDir + "/sysmon_stream.py"];
     }
 
     function _startStream() {

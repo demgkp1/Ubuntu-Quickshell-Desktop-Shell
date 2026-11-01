@@ -1,7 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
-import Clavis.WindowPreview
 import qs.Common
 import qs.Components
 import qs.Services
@@ -14,8 +13,8 @@ Button {
     property string applicationName: ""
     property string applicationIcon: ""
     property bool showThumbnail: false
-    property WindowCaptureProbe capture: null
-    property WindowPreviewFrame previewFrame: null
+    property var capture: null
+    property var previewFrame: null
     property var mediaPlayer: null
     readonly property string title: String(windowData && (windowData.title || windowData.appName
                                                           || windowData.appId) || applicationName)
@@ -99,10 +98,11 @@ Button {
                 color: Appearance.applyAlpha(Appearance.colors.colOnSurface, 0.05)
                 radius: 4
                 clip: true
-                CaptureImage {
+                Image {
                     anchors.fill: parent
-                    frame: root.previewFrame
+                    source: root.previewFrame && root.previewFrame.image ? root.previewFrame.image : ""
                     visible: root.hasFrame
+                    fillMode: Image.PreserveAspectFit
                 }
                 Text {
                     anchors.fill: parent

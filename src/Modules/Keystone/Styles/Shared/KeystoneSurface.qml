@@ -35,15 +35,7 @@ Variants {
         if (!instances || instances.length === 0)
             return null;
 
-        const outputName = (typeof Niri !== "undefined" && Niri ? String(Niri.currentOutput || "") : "");
-        if (outputName.length > 0) {
-            for (let index = 0; index < instances.length; ++index) {
-                const instance = instances[index];
-                if (instance && instance.screen && instance.screen.name === outputName)
-                    return instance;
-            }
-        }
-        return instances.length > 0 ? instances[0] : null;
+        return instances[0];
     }
 
     function invoke(methodName) {
@@ -78,7 +70,9 @@ Variants {
         return invoke("tools");
     }
 
-    model: Quickshell.screens
+    readonly property var activeScreen: Quickshell.focusedScreen || (Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null)
+
+    model: activeScreen ? [activeScreen] : []
 
     PanelWindow {
         id: keystoneWindow
@@ -162,13 +156,22 @@ Variants {
         implicitWidth: screen && screen.geometry ? screen.geometry.width : (screen ? screen.width : 2048)
         implicitHeight: screen && screen.geometry ? screen.geometry.height : (screen ? screen.height : 1152)
         color: "transparent"
-        visible: true
+        visible: !WidgetState.sessionLocked
         exclusiveZone: -1
         // WlrLayershell.namespace: "clavis-shell-keystone"
         // WlrLayershell.layer: WlrLayer.Top
         // WlrLayershell.exclusionMode: ExclusionMode.Ignore
         // WlrLayershell.keyboardFocus: root.keyboardInteractionActive && !keystoneWindow.sidebarHasPriority
         //                              ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+
+        Connections {
+            target: WidgetState
+            function onSessionLockedChanged() {
+                if (WidgetState.sessionLocked) {
+                    keystoneWindow.closeAllOthers();
+                }
+            }
+        }
 
         // The interactive surface spans the screen for expansion and animations.
         // Reserve only the resting island thickness on a separately edge-anchored
@@ -180,7 +183,7 @@ Variants {
 
         Item {
             id: keyboard
-            visible: root.keyboardInteractionActive && !keystoneWindow.sidebarHasPriority
+            visible: root.keyboardInteractionActive && !keystoneWindow.sidebarHasPriority && !WidgetState.sessionLocked
             anchors.fill: parent
 
             Item {

@@ -22,6 +22,8 @@ Rectangle {
     implicitHeight: contentItem.implicitHeight + verticalPadding * 2
     radius: Appearance.rounding.normal
     color: Appearance.colors.colLayer1
+    border.color: Appearance.colors.colLayer0Border
+    border.width: 1
 
     ColumnLayout {
         id: contentItem
