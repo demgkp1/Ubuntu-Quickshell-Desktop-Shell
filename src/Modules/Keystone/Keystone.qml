@@ -12,6 +12,10 @@ Item {
 
     readonly property bool searchActionsAvailable: styleLoader.item !== null
 
+    function placementSnapshots() {
+        return styleLoader.item ? styleLoader.item.placementSnapshots() : [];
+    }
+
     function invoke(methodName): string {
         console.warn("[Keystone.qml] invoke called for:", methodName);
         if (WidgetState.sessionLocked) {

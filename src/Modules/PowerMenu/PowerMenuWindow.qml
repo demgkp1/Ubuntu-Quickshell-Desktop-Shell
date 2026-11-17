@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
+import Clavis.Runtime
 import qs.Common
 import qs.Components
 import qs.Services
@@ -57,15 +58,14 @@ PanelWindow {
     ]
 
     screen: targetScreen || Quickshell.focusedScreen || (Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null)
-    property int x: root.screen && root.screen.geometry ? root.screen.geometry.x : 0
-    property int y: root.screen && root.screen.geometry ? root.screen.geometry.y : 0
     implicitWidth: root.screen && root.screen.geometry ? root.screen.geometry.width : 1920
     implicitHeight: root.screen && root.screen.geometry ? root.screen.geometry.height : 1080
 
     // Persistent mapping under Mutter X11 to avoid compositor recreate/unmap failures.
     visible: true
     color: "transparent"
-    exclusiveZone: 0
+    exclusionMode: ExclusionMode.Ignore
+    PanelReservation { target: root.contentItem; placement: "screen" }
 
     // WlrLayershell attached properties break window attachment under Mutter XCB.
     // WlrLayershell.namespace: "clavis-shell-power-menu"
@@ -230,6 +230,7 @@ PanelWindow {
 
                         Layout.preferredWidth: root.buttonSize
                         Layout.preferredHeight: root.buttonSize
+                        clip: true
                         radius: Appearance.rounding.large
                         color: actionMouse.pressed ? Appearance.colors.colPrimaryActive : (
                                                          actionButton.selected
@@ -237,20 +238,31 @@ PanelWindow {
                                                            Appearance.colors.colLayer1)
 
                         ColumnLayout {
-                            anchors.centerIn: parent
-                            spacing: 5
+                            readonly property real horizontalPadding: Math.max(4, Math.round(root.buttonSize * 8 / 128))
+                            readonly property real iconBoxSize: Math.max(28, Math.round(root.buttonSize * 60 / 128))
+                            readonly property real scaledIconSize: Math.max(24, Math.round(root.buttonSize * 54 / 128))
+                            readonly property int labelPixelSize: Math.max(11, Math.min(18, Math.round(root.buttonSize * 18 / 128)))
+
+                            anchors {
+                                left: parent.left
+                                right: parent.right
+                                verticalCenter: parent.verticalCenter
+                                leftMargin: horizontalPadding
+                                rightMargin: horizontalPadding
+                            }
+                            spacing: Math.max(2, Math.round(root.buttonSize * 5 / 128))
 
                             Item {
                                 Layout.alignment: Qt.AlignHCenter
-                                Layout.preferredWidth: 60
-                                Layout.preferredHeight: 60
+                                Layout.preferredWidth: parent.iconBoxSize
+                                Layout.preferredHeight: parent.iconBoxSize
 
                                 MaterialSymbol {
                                     id: actionIcon
 
                                     anchors.centerIn: parent
                                     text: actionButton.modelData.icon
-                                    iconSize: 54
+                                    iconSize: parent.parent.scaledIconSize
                                     fill: 0
                                     color: actionButton.selected ? Appearance.colors.colOnPrimary :
                                                                    Appearance.colors.colOnLayer1
@@ -283,12 +295,17 @@ PanelWindow {
                             }
 
                             Text {
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
                                 Layout.alignment: Qt.AlignHCenter
+                                horizontalAlignment: Text.AlignHCenter
+                                elide: Text.ElideRight
+                                maximumLineCount: 1
                                 text: actionButton.modelData.label
                                 color: actionButton.selected ? Appearance.colors.colOnPrimary :
                                                                Appearance.colors.colOnLayer1
                                 font.family: Fonts.ui
-                                font.pixelSize: 18
+                                font.pixelSize: parent.labelPixelSize
                                 font.weight: Font.DemiBold
                             }
                         }
@@ -298,7 +315,7 @@ PanelWindow {
 
                             anchors.fill: parent
                             hoverEnabled: true
-                            cursorShape: Qt.ArrowCursor
+                            cursorShape: Qt.PointingHandCursor
                             onEntered: root.selectedIndex = actionButton.index
                             onClicked: PowerMenuService.trigger(actionButton.modelData.action)
                         }

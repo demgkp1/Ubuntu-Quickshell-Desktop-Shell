@@ -3,9 +3,11 @@
 import copy
 from contextlib import contextmanager
 import ctypes
+import ctypes.util
 import fcntl
 import hashlib
 import json
+import math
 import os
 import re
 from pathlib import Path
@@ -15,7 +17,10 @@ import struct
 import subprocess
 import sys
 import tempfile
-import niri_outputs
+try:
+    import niri_outputs
+except ImportError:
+    from . import niri_outputs
 
 sys.path.insert(0, str(Path(__file__).parent / 'vendor'))
 import kdl
@@ -239,6 +244,179 @@ def replace_file(path, text):
             os.unlink(name)
 
 
+def _validated_opacity(value):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError('Window opacity must be a number')
+    num = float(value)
+    if not math.isfinite(num) or not 0.2 <= num <= 1.0:
+        raise ValueError('Window opacity must be between 0.20 and 1.0')
+    return float(round(num, 4))
+
+
+def _has_background_xray_false(node):
+    return any(
+        child.name == 'background-effect'
+        and any(opt.name == 'xray' and opt.args == [False] for opt in child.nodes)
+        for child in node.nodes
+    )
+
+
+def _is_managed_xray_rule(node):
+    if node.name == 'layer-rule' and _has_background_xray_false(node):
+        return any(
+            child.name == 'match' and child.props == {'namespace': '^clavis-shell-'}
+            for child in node.nodes
+        )
+    if node.name == 'window-rule' and _has_background_xray_false(node):
+        return any(
+            child.name == 'match'
+            and child.props == {'title': '^(clavis-control-center(-[a-z-]+)?|clavis-file-picker)$'}
+            for child in node.nodes
+        )
+    return False
+
+
+def _is_managed_opacity_rule(node):
+    if node.name != 'window-rule' or node.args or node.props:
+        return False
+    if len(node.nodes) == 1:
+        child = node.nodes[0]
+        return child.name == 'opacity' and len(child.args) == 1 and not child.props and not child.nodes
+    if len(node.nodes) == 2:
+        has_inactive_match = any(
+            child.name == 'match' and child.props == {'is-active': False}
+            and not child.args and not child.nodes
+            for child in node.nodes
+        )
+        has_opacity = any(
+            child.name == 'opacity' and len(child.args) == 1
+            and not child.props and not child.nodes
+            for child in node.nodes
+        )
+        return has_inactive_match and has_opacity
+    return False
+
+
+def effects_state(text):
+    xray = True
+    active_opacity = None
+    inactive_opacity = None
+    managed = False
+    if text:
+        for node in parse(text).nodes:
+            if _is_managed_xray_rule(node):
+                xray = False
+            elif _is_managed_opacity_rule(node):
+                managed = True
+                opacity_node = next(child for child in node.nodes if child.name == 'opacity')
+                val = float(opacity_node.args[0])
+                has_inactive_match = any(
+                    child.name == 'match' and child.props == {'is-active': False}
+                    for child in node.nodes
+                )
+                if has_inactive_match:
+                    inactive_opacity = val
+                else:
+                    active_opacity = val
+    if not managed:
+        return dict(
+            xray=xray,
+            windowOpacity=dict(enabled=False, active=0.92, inactive=0.82, managed=False),
+            windowOpacityManaged=False,
+        )
+    if inactive_opacity is not None:
+        enabled = True
+        active = active_opacity if active_opacity is not None else 0.92
+        inactive = inactive_opacity
+    elif active_opacity is not None and active_opacity < 1.0:
+        enabled = True
+        active = active_opacity
+        inactive = active_opacity
+    else:
+        enabled = False
+        active = 0.92
+        inactive = 0.82
+    return dict(
+        xray=xray,
+        windowOpacity=dict(enabled=enabled, active=active, inactive=inactive, managed=True),
+        windowOpacityManaged=True,
+    )
+
+
+def edit_effects(previous, request):
+    header = '// Managed by Clavis.\n'
+    prev_state = effects_state(previous)
+    xray = bool(request.get('xray', True))
+    other_nodes = []
+    if previous is not None:
+        for node in parse(previous).nodes:
+            if not _is_managed_xray_rule(node) and not _is_managed_opacity_rule(node):
+                other_nodes.append(node)
+
+    if 'windowOpacity' in request and request['windowOpacity'] is not None:
+        opacity_cfg = request['windowOpacity']
+        if not isinstance(opacity_cfg, dict):
+            raise ValueError('windowOpacity must be an object')
+        enabled = bool(opacity_cfg.get('enabled', False))
+        default_managed = request.get('operation', 'update') != 'setup'
+        req_managed = bool(opacity_cfg['managed']) if 'managed' in opacity_cfg else default_managed
+        managed = prev_state['windowOpacityManaged'] or req_managed or enabled
+        if enabled:
+            active = _validated_opacity(opacity_cfg.get('active', 0.92))
+            inactive = _validated_opacity(opacity_cfg.get('inactive', 0.82))
+        else:
+            active = 1.0
+            inactive = 1.0
+    else:
+        prev_opacity = prev_state['windowOpacity']
+        enabled = prev_opacity['enabled']
+        managed = prev_opacity['managed']
+        active = _validated_opacity(prev_opacity['active']) if enabled else 1.0
+        inactive = _validated_opacity(prev_opacity['inactive']) if enabled else 1.0
+
+    nodes = []
+    if not xray:
+        nodes.append(kdl.Node('layer-rule', nodes=[
+            kdl.Node('match', props={'namespace': '^clavis-shell-'}),
+            kdl.Node('background-effect', nodes=[kdl.Node('xray', args=[False])]),
+        ]))
+        nodes.append(kdl.Node('window-rule', nodes=[
+            kdl.Node('match', props={'title': '^(clavis-control-center(-[a-z-]+)?|clavis-file-picker)$'}),
+            kdl.Node('background-effect', nodes=[kdl.Node('xray', args=[False])]),
+        ]))
+    nodes.extend(other_nodes)
+    if enabled:
+        nodes.append(kdl.Node('window-rule', nodes=[
+            kdl.Node('opacity', args=[active]),
+        ]))
+        nodes.append(kdl.Node('window-rule', nodes=[
+            kdl.Node('match', props={'is-active': False}),
+            kdl.Node('opacity', args=[inactive]),
+        ]))
+    elif managed:
+        nodes.append(kdl.Node('window-rule', nodes=[
+            kdl.Node('opacity', args=[1.0]),
+        ]))
+
+    if not nodes:
+        return header + "// X-Ray is niri's default for client-requested effects.\n"
+    return header + ''.join(render(node) for node in nodes)
+
+
+def reload_niri_config(command='niri'):
+    if not os.environ.get('NIRI_SOCKET'):
+        return
+    try:
+        subprocess.run(
+            [command, 'msg', 'action', 'load-config-file'],
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
 def initial(feature, request):
     header = '// Managed by Clavis.\n'
     if feature == 'hot-corners':
@@ -256,9 +434,7 @@ def initial(feature, request):
     if feature == 'layer-rules':
         return header + 'layer-rule {\n    match namespace="^clavis-overview-wallpaper$";\n    place-within-backdrop true;\n}\nlayout {\n    background-color "transparent";\n}\n'
     if feature == 'effects':
-        if request.get('xray', True):
-            return header + "// X-Ray is niri's default for client-requested effects.\n"
-        return header + 'layer-rule {\n    match namespace="^clavis-shell-";\n    background-effect { xray false; };\n}\nwindow-rule {\n    match title="^(clavis-control-center(-[a-z-]+)?|clavis-file-picker)$";\n    background-effect { xray false; };\n}\n'
+        return edit_effects(None, request)
     size = int(request.get('size', 24))
     hide = int(request.get('hideAfter', 0))
     if not 12 <= size <= 128 or not 0 <= hide <= 5000:
@@ -274,14 +450,33 @@ def initial(feature, request):
     return header + render(node)
 
 
-_xkb = ctypes.CDLL('libxkbcommon.so.0')
-_xkb.xkb_keysym_from_name.argtypes = [ctypes.c_char_p, ctypes.c_int]
-_xkb.xkb_keysym_from_name.restype = ctypes.c_uint32
-_xkb.xkb_keysym_to_lower.argtypes = [ctypes.c_uint32]
-_xkb.xkb_keysym_to_lower.restype = ctypes.c_uint32
+def _load_xkbcommon():
+    candidates = [
+        'libxkbcommon.so.0',
+        ctypes.util.find_library('xkbcommon'),
+        '/lib/x86_64-linux-gnu/libxkbcommon.so.0',
+        '/usr/lib/x86_64-linux-gnu/libxkbcommon.so.0',
+    ]
+    for candidate in candidates:
+        if not candidate:
+            continue
+        try:
+            lib = ctypes.CDLL(candidate)
+            lib.xkb_keysym_from_name.argtypes = [ctypes.c_char_p, ctypes.c_int]
+            lib.xkb_keysym_from_name.restype = ctypes.c_uint32
+            lib.xkb_keysym_to_lower.argtypes = [ctypes.c_uint32]
+            lib.xkb_keysym_to_lower.restype = ctypes.c_uint32
+            return lib
+        except OSError:
+            continue
+    return None
+
+
+_xkb = _load_xkbcommon()
 
 
 def key_identity(key, mod='Super'):
+    global _xkb
     parts = key.split('+')
     aliases = {'control': 'Ctrl', 'ctrl': 'Ctrl', 'win': 'Super', 'super': 'Super', 'shift': 'Shift', 'alt': 'Alt', 'mod5': 'ISO_Level3_Shift', 'iso_level3_shift': 'ISO_Level3_Shift', 'iso_level5_shift': 'ISO_Level5_Shift', 'mod': mod}
     modifiers = set()
@@ -292,6 +487,10 @@ def key_identity(key, mod='Super'):
     mouse = {name.lower(): name for name in ('MouseLeft', 'MouseMiddle', 'MouseRight', 'MouseBack', 'MouseForward')}
     if parts[-1].lower() in mouse:
         return '+'.join(sorted(modifiers)) + ':' + mouse[parts[-1].lower()]
+    if _xkb is None:
+        _xkb = _load_xkbcommon()
+    if _xkb is None:
+        raise ValueError('Unable to load libxkbcommon.so.0')
     sym = _xkb.xkb_keysym_from_name(parts[-1].encode(), 1)
     if parts[-1].lower() == 'xf86screensaver':
         sym = _xkb.xkb_keysym_from_name(parts[-1].encode(), 0) or _xkb.xkb_keysym_from_name(b'XF86ScreenSaver', 0)
@@ -483,6 +682,7 @@ def status(request):
         state['revision'] = graph.revision()
         state['minimizeAnimation'] = minimize_animation_state(graph)
         state['hotCorners'] = hot_corners_state(graph)
+        state['effects'] = effects_state(graph.files.get(path_key(managed_dir / 'effects.kdl')))
         state['outputs'] = niri_outputs.inspect(graph, path_key(managed_dir / 'outputs.kdl'))
         state['bindings'], state['modKey'] = bindings(graph, path_key(managed_dir / 'binds.kdl'))
         state['diagnostics']['conflicts'] = any(row['collision'] for row in state['bindings'])
@@ -670,6 +870,8 @@ def mutate(request):
             candidate = edit_bindings(graph, path_key(path), request)
         elif feature == 'minimize-animation':
             candidate = edit_minimize_animation(previous, request)
+        elif feature == 'effects':
+            candidate = edit_effects(previous, request)
         else:
             candidate = initial(feature, request)
         main_text = graph.files[path_key(main)]
@@ -723,6 +925,8 @@ def mutate(request):
                 else:
                     replace_file(path, previous)
             raise
+    if feature == 'effects':
+        reload_niri_config(request.get('niri', 'niri'))
     return status(dict(request, operation='status'))
 
 

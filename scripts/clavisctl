@@ -30,7 +30,7 @@ Usage:
 
 Service Commands:
   start           Start the shell via systemd user service
-  stop            Stop the shell and restore GNOME native topbar
+  stop            Stop only the project systemd service
   restart         Restart the shell service
   status          Show comprehensive health report (service, X11 windows, IPC)
   logs [-f]       Show systemd service logs (optionally follow)
@@ -74,9 +74,6 @@ case "$cmd" in
     stop)
         echo "[clavisctl] Stopping $SERVICE_NAME..."
         systemctl --user stop "$SERVICE_NAME" 2>/dev/null || true
-        killall quickshell 2>/dev/null || true
-        gnome-extensions disable "hidetopbar@mathieu.bidon.ca" 2>/dev/null || true
-        gnome-extensions enable "ubuntu-dock@ubuntu.com" 2>/dev/null || true
         echo "[clavisctl] Shell stopped cleanly."
         ;;
     restart)

@@ -10,19 +10,24 @@ TopBarPill {
 
     property string screenName: ""
     property bool vertical: false
-    readonly property bool hasMultipleOutputs: Quickshell.screens && Quickshell.screens.length > 1
-    property int currentWorkspaceId: 1
-    readonly property var workspaces: [
-        { id: 1, output: root.screenName, isActive: root.currentWorkspaceId === 1, windowCount: 1 },
-        { id: 2, output: root.screenName, isActive: root.currentWorkspaceId === 2, windowCount: 0 },
-        { id: 3, output: root.screenName, isActive: root.currentWorkspaceId === 3, windowCount: 0 },
-        { id: 4, output: root.screenName, isActive: root.currentWorkspaceId === 4, windowCount: 0 }
-    ]
+    readonly property bool hasMultipleOutputs: (Quickshell.screens && Quickshell.screens.length > 1)
+                                             || CompositorBackend.outputs.length > 1
+    readonly property var workspaces: {
+        // Touch reactive backend properties so QML updates when workspaces or outputs change.
+        const allWorkspaces = CompositorBackend.workspaces;
+        const _outputs = CompositorBackend.outputs;
+        const _windows = CompositorBackend.windows;
+        const _gen = CompositorBackend.connectionGeneration;
+        if (root.screenName !== "")
+            return CompositorBackend.workspacesForOutput(root.screenName);
+        return Array.isArray(allWorkspaces) ? allWorkspaces : [];
+    }
 
-    implicitHeight: vertical ? layout.implicitHeight + 2 * Sizes.barPillHorizontalPadding :
-                               Sizes.barPillThickness
-    implicitWidth: vertical ? Sizes.barPillThickness : layout.implicitWidth + 2
-                              * Sizes.barPillHorizontalPadding
+    visible: root.workspaces.length > 0
+    implicitHeight: !visible ? 0 : (vertical ? layout.implicitHeight + 2 * Sizes.barPillHorizontalPadding :
+                               Sizes.barPillThickness)
+    implicitWidth: !visible ? 0 : (vertical ? Sizes.barPillThickness : layout.implicitWidth + 2
+                              * Sizes.barPillHorizontalPadding)
 
     animateResize: {
         for (let index = 0; index < workspaceRepeater.count; ++index) {
@@ -59,9 +64,10 @@ TopBarPill {
 
                 required property var modelData
 
-                property bool belongsToScreen: root.acceptsOutput(modelData ? modelData.output : "")
-                property bool active: modelData ? !!modelData.isActive : false
-                property bool hasWindows: modelData ? (modelData.windowCount > 0) : false
+                property bool belongsToScreen: root.acceptsOutput(
+                    modelData && modelData.output !== undefined ? modelData.output : root.screenName)
+                property bool active: modelData ? !!(modelData.isActive || modelData.active) : false
+                property bool hasWindows: modelData ? (Number(modelData.windowCount || 0) > 0) : false
                 property bool isHovered: mouseArea.containsMouse
 
                 visible: belongsToScreen
@@ -89,10 +95,10 @@ TopBarPill {
                     height: parent.implicitHeight
                     radius: height / 2
 
-                    color: delegateRoot.active ? Appearance.colors.colPrimary : delegateRoot.hasWindows
-                                                 ? Appearance.colors.colOnSurface : delegateRoot.isHovered
-                                                   ? Appearance.colors.colLayer2Hover :
-                                                     Appearance.colors.colLayer4
+                    color: delegateRoot.active || delegateRoot.isHovered ? BarColors.selected :
+                                                                           delegateRoot.hasWindows
+                                                                           ? BarColors.inactiveWorkspace :
+                                                                             BarColors.emptyWorkspace
 
                     Behavior on color {
                         ColorAnimation {
@@ -105,14 +111,18 @@ TopBarPill {
                     id: mouseArea
                     anchors.fill: parent
                     hoverEnabled: true
-                    cursorShape: Qt.ArrowCursor
-                    onClicked: root.currentWorkspaceId = delegateRoot.modelData ? delegateRoot.modelData.id : 1
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (delegateRoot.modelData && delegateRoot.modelData.id !== undefined
+                                && delegateRoot.modelData.id !== null)
+                            Niri.focusWorkspaceById(delegateRoot.modelData.id);
+                    }
                 }
 
                 PopupToolTip {
                     extraVisibleCondition: mouseArea.containsMouse
                     text: qsTr("Workspace ") + (delegateRoot.modelData ? delegateRoot.modelData.id : "") + (delegateRoot.hasWindows ? qsTr("\nWindows: ")
-                                                                                     + (delegateRoot.modelData ? delegateRoot.modelData.windowCount : "") : "")
+                                                                                     + (delegateRoot.modelData ? delegateRoot.modelData.windowCount : 0) : "")
                 }
             }
         }

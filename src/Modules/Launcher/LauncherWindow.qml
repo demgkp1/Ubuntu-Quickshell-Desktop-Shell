@@ -4,6 +4,7 @@ import QtQuick.Controls
 import QtQuick.Controls.Material
 import Quickshell
 import Quickshell.Wayland
+import Clavis.Runtime
 import qs.Common
 import qs.Services
 import qs.Widgets.common
@@ -17,11 +18,10 @@ PanelWindow {
     color: "transparent"
 
     screen: Quickshell.focusedScreen || (Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null)
-    property int x: root.screen && root.screen.geometry ? root.screen.geometry.x : (root.screen ? root.screen.x : 0)
-    property int y: root.screen && root.screen.geometry ? root.screen.geometry.y : (root.screen ? root.screen.y : 0)
     implicitWidth: root.screen && root.screen.geometry ? root.screen.geometry.width : (root.screen ? root.screen.width : 1920)
     implicitHeight: root.screen && root.screen.geometry ? root.screen.geometry.height : (root.screen ? root.screen.height : 1080)
-    exclusiveZone: 0
+    exclusionMode: ExclusionMode.Ignore
+    PanelReservation { target: root.contentItem; placement: "screen" }
 
     anchors {
         top: true

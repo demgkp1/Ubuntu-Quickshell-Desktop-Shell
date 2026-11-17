@@ -11,17 +11,14 @@ TopBarPill {
     property bool vertical: false
     property real maximumTitleWidth: 250
     readonly property string edge: PersonalizationConfig.barPosition
-    property var activeWindow: ({
-        id: "",
-        title: qsTr("Ubuntu Desktop"),
-        iconPath: "",
-        appName: qsTr("Desktop"),
-        appId: ""
-    })
-    readonly property string activeTitle: (activeWindow && activeWindow.title) || qsTr("Desktop")
-    readonly property string activeIcon: (activeWindow && activeWindow.iconPath) || ""
-    readonly property string activeAppName: (activeWindow && (activeWindow.appName || activeWindow.appId)) || ""
-    readonly property bool isDesktop: !activeWindow || !activeWindow.id
+    readonly property var activeWindow: CompositorBackend.focusedWindow || null
+    readonly property bool hasActiveWindow: !!(activeWindow && activeWindow.id !== undefined
+                                               && activeWindow.id !== null && String(activeWindow.id) !== "")
+    readonly property bool isDesktop: !hasActiveWindow
+    readonly property string activeTitle: (activeWindow && activeWindow.title) ? String(activeWindow.title) : qsTr("Desktop")
+    readonly property string activeIcon: (activeWindow && activeWindow.iconPath) ? String(activeWindow.iconPath) : ""
+    readonly property string activeAppName: (activeWindow && (activeWindow.appName || activeWindow.appId || activeWindow.app_id))
+        ? String(activeWindow.appName || activeWindow.appId || activeWindow.app_id) : ""
     readonly property string verticalAppName: activeAppName || qsTr("Desktop")
     readonly property bool verticalAppNameIsCjk: root.containsCjk(verticalAppName)
     readonly property string detailedTooltipText: activeAppName && activeAppName !== activeTitle
@@ -84,14 +81,14 @@ TopBarPill {
                 anchors.fill: parent
                 text: "desktop_windows"
                 iconSize: Sizes.barIconSize
-                color: Appearance.colors.colPrimary
+                color: BarColors.selected
                 visible: root.isDesktop
             }
 
             Text {
                 anchors.centerIn: parent
-                text: root.activeAppName.charAt(0).toUpperCase()
-                color: Appearance.colors.colPrimary
+                text: (root.activeAppName || root.activeTitle).charAt(0).toUpperCase()
+                color: BarColors.selected
                 font.pixelSize: 13
                 font.bold: true
                 visible: !root.isDesktop && !appIcon.visible
@@ -115,7 +112,7 @@ TopBarPill {
                 text: root.activeTitle
                 font.family: Fonts.ui
                 font.pointSize: 11
-                color: Appearance.colors.colOnSurface
+                color: BarColors.foreground
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideRight
@@ -129,7 +126,7 @@ TopBarPill {
                 text: root.stackedVerticalTitle(root.verticalAppName)
                 font.family: Fonts.ui
                 font.pointSize: 11
-                color: Appearance.colors.colOnSurface
+                color: BarColors.foreground
                 horizontalAlignment: Text.AlignHCenter
                 lineHeight: 0.9
                 visible: root.vertical && root.verticalAppNameIsCjk
@@ -142,7 +139,7 @@ TopBarPill {
                 text: root.limitedVerticalTitle(root.verticalAppName)
                 font.family: Fonts.ui
                 font.pointSize: 11
-                color: Appearance.colors.colOnSurface
+                color: BarColors.foreground
                 rotation: root.edge === "left" ? -90 : 90
                 visible: root.vertical && !root.verticalAppNameIsCjk
             }

@@ -83,16 +83,23 @@ Singleton {
         command: ["mkdir", "-p", root.stateDir]
         running: true
 
-        onExited: {
-            root.storeReady = true;
-            todoFile.reload();
+        onExited: exitCode => {
+            if (exitCode === 0) {
+                root.storeReady = true;
+            } else {
+                console.warn("TodoService failed to create state directory:", root.stateDir, exitCode);
+                root.list = [];
+                root.ready = true;
+            }
         }
     }
 
     FileView {
         id: todoFile
 
-        path: root.filePath
+        path: root.storeReady ? root.filePath : ""
+        blockWrites: true
+        atomicWrites: true
 
         onLoaded: {
             try {
@@ -109,12 +116,15 @@ Singleton {
             if (!root.storeReady)
                 return;
 
-            if (error !== FileViewError.FileNotFound)
-                console.warn("TodoService failed to open:", error);
-
             root.list = [];
             root.ready = true;
-            root.save();
+            if (error === FileViewError.FileNotFound) {
+                root.save();
+            } else {
+                console.warn("TodoService failed to open:", error);
+            }
         }
+
+        onSaveFailed: error => console.warn("TodoService failed to save:", error)
     }
 }

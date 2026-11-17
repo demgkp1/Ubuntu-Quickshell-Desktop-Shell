@@ -19,6 +19,7 @@ Singleton {
                                                       && WidgetState.dashboardSidebarView === "info")
     readonly property bool hasNotifs: popupList.length > 0
 
+    property bool storeReady: false
     property bool historyReady: false
     property var pendingSavedFiles: []
     property int unread: 0
@@ -132,7 +133,7 @@ Singleton {
     }
 
     Connections {
-        target: typeof X11WindowService !== "undefined" ? X11WindowService : null
+        target: root.ownsSystemNotifications && typeof X11WindowService !== "undefined" ? X11WindowService : null
         function onNotificationReceived(notif) {
             if (!notif) return;
             root.addLocal(notif.summary || "", notif.body || "", "", notif.appName || "System", notif.appIcon || "dialog-information");
@@ -183,9 +184,20 @@ Singleton {
         id: ensureStoreDir
         command: ["mkdir", "-p", root.notificationsDir]
         running: false
-        onExited: root.refresh()
+        onExited: exitCode => {
+            if (exitCode === 0) {
+                root.storeReady = true;
+            } else {
+                console.warn("NotificationManager failed to create directory:", root.notificationsDir, exitCode);
+                root.initDone();
+            }
+        }
     }
 
+    property bool ownsSystemNotifications: Quickshell.env("CLAVIS_OWN_NOTIFICATIONS") === "1"
+    property Loader notificationOwner: Loader {
+        active: root.ownsSystemNotifications
+        sourceComponent: Component {
     NotificationServer {
         id: notifServer
 
@@ -253,10 +265,14 @@ Singleton {
             root.notify(newNotifObject);
         }
     }
+        }
+    }
 
     FileView {
         id: notifFileView
-        path: root.filePath
+        path: root.storeReady ? root.filePath : ""
+        blockWrites: true
+        atomicWrites: true
 
         onLoaded: {
             try {
@@ -296,8 +312,8 @@ Singleton {
                 });
                 root.idOffset = maxId;
                 root.enforceHistoryCapacity();
-                root.saveNotifications();
                 root.initDone();
+                root.saveNotifications();
             } catch (error) {
                 console.warn("NotificationManager failed to load history:", error);
                 root.list = [];
@@ -307,15 +323,20 @@ Singleton {
         }
 
         onLoadFailed: error => {
+            if (!root.storeReady)
+                return;
+
             if (error === FileViewError.FileNotFound) {
                 root.list = [];
-                root.saveNotifications();
                 root.initDone();
+                root.saveNotifications();
             } else {
                 console.warn("NotificationManager failed to load notification file:", error);
                 root.initDone();
             }
         }
+
+        onSaveFailed: error => console.warn("NotificationManager failed to save notifications:", error)
     }
 
     function notificationById(id) {
@@ -391,10 +412,13 @@ Singleton {
     }
 
     function refresh() {
-        notifFileView.reload();
+        if (root.storeReady)
+            notifFileView.reload();
     }
 
     function saveNotifications() {
+        if (!root.storeReady)
+            return;
         notifFileView.setText(root.stringifyList(root.list));
     }
 

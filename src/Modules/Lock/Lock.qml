@@ -1,160 +1,38 @@
 import QtQuick
 import Quickshell
-import Quickshell.Services.Pam
 import qs.Common
 import qs.Services
-
 Scope {
     id: root
-
-    readonly property bool active: sessionLock.locked || capturePending
-    readonly property bool secure: sessionLock.secure
+    readonly property bool active: GnomeSession.desktop.locked === true
+    readonly property bool secure: active && !!GnomeSession.desktop.lockAvailable
     property bool capturePending: false
-    property int activeCaptureRequestId: 0
-    property string sessionStyle: "default"
-
-    Binding {
-        target: WindowPreviewService
-        property: "suspended"
-        value: root.active
-    }
-
-    Binding {
-        target: WidgetState
-        property: "sessionLocked"
-        value: root.active
-    }
-
+    property int requestId: -1
     signal unlocked
     signal secured
-
+    Binding { target: WindowPreviewService; property: "suspended"; value: root.active }
+    Binding { target: WidgetState; property: "sessionLocked"; value: root.active }
     function open() {
-        if (sessionLock.locked || capturePending)
-            return "ALREADY_LOCKED";
-
-        sessionStyle = PersonalizationConfig.lockScreenStyle;
-        internalContext.authRevealed = false;
-        internalContext.currentText = "";
-        internalContext.unlockInProgress = false;
-        internalContext.showFailure = false;
-        capturePending = true;
-        activeCaptureRequestId = preLockCapture.capture();
-        return "LOCKED";
+        if (active) return "ALREADY_LOCKED";
+        if (!GnomeSession.desktop.lockAvailable) return "UNAVAILABLE";
+        requestId = GnomeSession.request("lock", {});
+        capturePending = requestId > 0;
+        deadline.restart();
+        return capturePending ? "PENDING" : "UNAVAILABLE";
     }
-
-    function isLocked() {
-        return sessionLock.locked || capturePending;
-    }
-
-
-
-    function finishCapture(captureRequestId) {
-        if (!capturePending || captureRequestId !== activeCaptureRequestId)
-            return;
-
-        sessionLock.locked = true;
-        capturePending = false;
-        root.secured();
-    }
-
+    function isLocked() { return active; }
     onActiveChanged: {
-        SystemIdentityService.setUptimeConsumer("lock-screen", root.active);
-        SystemMonitorService.setConsumerModules("lock-screen", root.active ? ["cpu", "memory", "disk"] : []);
-        if (root.active) {
-            WidgetState.closeAllPopups();
+        capturePending = false;
+        deadline.stop();
+        if (active) { WidgetState.closeAllPopups(); secured(); }
+        else unlocked();
+    }
+    Timer { id: deadline; interval: 3000; onTriggered: root.capturePending = false }
+    Connections {
+        target: GnomeSession
+        function onOperationFinished(id, accepted, error) {
+            if (id === root.requestId && !accepted) root.capturePending = false;
         }
     }
-    Component.onDestruction: {
-        preLockCapture.cancel();
-        preLockCapture.clear();
-        SystemIdentityService.setUptimeConsumer("lock-screen", false);
-        SystemMonitorService.clearConsumer("lock-screen");
-    }
-
-    PreLockCapture {
-        id: preLockCapture
-
-        onCompleted: captureRequestId => {
-            return root.finishCapture(captureRequestId);
-        }
-    }
-
-    Scope {
-        id: internalContext
-
-        property bool authRevealed: false
-        property string currentText: ""
-        property bool unlockInProgress: false
-        property bool showFailure: false
-
-        signal unlockFailed
-
-        function tryUnlock() {
-            if (currentText === "" || unlockInProgress)
-                return;
-
-            internalContext.unlockInProgress = true;
-            pam.start();
-        }
-
-        function finishUnlock() {
-            if (!sessionLock.locked)
-                return;
-            sessionLock.locked = false;
-            root.unlocked();
-            Qt.callLater(preLockCapture.clear);
-        }
-
-        PamContext {
-            id: pam
-
-            configDirectory: Paths.shellDir + "/Modules/Lock/pam"
-            config: "password.conf"
-            onPamMessage: {
-                if (this.responseRequired)
-                    this.respond(internalContext.currentText);
-            }
-            onCompleted: result => {
-                if (result == PamResult.Success) {
-                    internalContext.currentText = "";
-                    internalContext.showFailure = false;
-                    sessionLock.unlock();
-                } else {
-                    internalContext.currentText = "";
-                    internalContext.showFailure = true;
-                    internalContext.unlockFailed();
-                }
-                internalContext.unlockInProgress = false;
-            }
-        }
-    }
-
-    QtObject {
-        id: sessionLock
-
-        property bool locked: false
-        readonly property bool secure: true
-
-        function unlock() {
-            internalContext.finishUnlock();
-        }
-
-        onLockedChanged: {
-            if (!locked)
-                root.unlocked();
-        }
-    }
-
-    Variants {
-        model: Quickshell.screens
-
-        LockWindow {
-            required property var modelData
-            targetScreen: modelData
-            lockContext: internalContext
-            lockController: sessionLock
-            snapshotProvider: preLockCapture
-            sessionStyle: root.sessionStyle
-        }
-    }
+    // No custom lock windows, PAM form, screenshot or unlock IPC on GNOME.
 }

@@ -34,7 +34,9 @@ Singleton {
         };
     })
 
+    readonly property bool ownsSystemTray: Quickshell.env("CLAVIS_OWN_TRAY") === "1"
     readonly property var rawItems: {
+        if (!root.ownsSystemTray) return [];
         const sys = (SystemTray.items && SystemTray.items.values ? SystemTray.items.values : []);
         const existingIds = new Set(sys.map(i => i.id));
         const extra = root.ayatanaItemsWrapped.filter(i => !existingIds.has(i.id));
@@ -131,15 +133,21 @@ Singleton {
         id: ensureStoreDir
         command: ["mkdir", "-p", root.configDir]
         running: true
-        onExited: {
-            root.storeReady = true;
-            configFile.reload();
+        onExited: exitCode => {
+            if (exitCode === 0) {
+                root.storeReady = true;
+            } else {
+                console.warn("TrayService failed to create config directory:", root.configDir, exitCode);
+                root.loadFromObject(root.defaultConfig());
+            }
         }
     }
 
     FileView {
         id: configFile
-        path: root.filePath
+        path: root.storeReady ? root.filePath : ""
+        blockWrites: true
+        atomicWrites: true
 
         onLoaded: {
             try {
@@ -151,9 +159,18 @@ Singleton {
             }
         }
 
-        onLoadFailed: {
+        onLoadFailed: error => {
+            if (!root.storeReady)
+                return;
+
             root.loadFromObject(root.defaultConfig());
-            root.save();
+            if (error === FileViewError.FileNotFound) {
+                root.save();
+            } else {
+                console.warn("TrayService failed to open:", error);
+            }
         }
+
+        onSaveFailed: error => console.warn("TrayService failed to save:", error)
     }
 }

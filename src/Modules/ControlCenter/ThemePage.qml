@@ -15,13 +15,15 @@ StyledFlickable {
     contentWidth: width
     contentHeight: contentColumn.y + contentColumn.implicitHeight + 24
 
-    readonly property real pageContentWidth: 600
+    readonly property real maxContentWidth: 600
+    readonly property real pageContentWidth: Math.min(root.maxContentWidth, Math.max(0, root.width - Metrics.pageMargin * 2))
 
     component Section: ColumnLayout {
         id: section
 
         property string title: ""
         property string iconName: "palette"
+        property string supportingText: ""
         default property alias content: body.data
 
         Layout.fillWidth: true
@@ -42,12 +44,24 @@ StyledFlickable {
 
             Text {
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
                 text: section.title
                 color: Appearance.colors.colOnSecondaryContainer
                 font.family: Fonts.ui
                 font.pixelSize: 18
                 font.weight: Font.Medium
+                elide: Text.ElideRight
             }
+        }
+
+        Text {
+            Layout.fillWidth: true
+            visible: section.supportingText.length > 0
+            text: section.supportingText
+            color: Appearance.colors.colSubtext
+            font.family: Fonts.ui
+            font.pixelSize: 12
+            wrapMode: Text.WordWrap
         }
 
         ColumnLayout {
@@ -63,7 +77,15 @@ StyledFlickable {
 
         property bool selected: false
         property bool darkPreview: false
-        property color normalFill: darkPreview ? "#5f5961" : "#e1dee2"
+        readonly property bool matchesCurrentMode: darkPreview === Appearance.m3colors.darkmode
+        readonly property color fallbackSurface: matchesCurrentMode
+                                                 ? (darkPreview ? Appearance.m3colors.m3surfaceContainerHighest
+                                                                : Appearance.m3colors.m3surfaceContainerLowest)
+                                                 : Appearance.m3colors.m3inverseSurface
+        readonly property color fallbackOnSurface: matchesCurrentMode
+                                                   ? Appearance.m3colors.m3onSurface
+                                                   : Appearance.m3colors.m3inverseOnSurface
+        property color normalFill: Appearance.mix(fallbackSurface, fallbackOnSurface, darkPreview ? 0.72 : 0.86)
         property color selectedFill: Appearance.colors.colPrimary
         property color checkColor: Appearance.colors.colOnPrimary
 
@@ -74,7 +96,7 @@ StyledFlickable {
         readonly property real segmentHeight: height
         readonly property real firstWidth: Math.round(width * 0.315)
         readonly property real middleWidth: Math.round(width * 0.34)
-        readonly property real lastWidth: width - firstWidth - middleWidth - gap * 2
+        readonly property real lastWidth: Math.max(0, width - firstWidth - middleWidth - gap * 2)
 
         Rectangle {
             x: 0
@@ -129,19 +151,36 @@ StyledFlickable {
         required property string title
         property bool darkPreview: false
         readonly property bool active: PersonalizationConfig.themeMode === mode
+        readonly property bool hovered: cardMouse.containsMouse
+        readonly property bool pressed: cardMouse.pressed
+        readonly property bool matchesCurrentMode: darkPreview === Appearance.m3colors.darkmode
         readonly property color selectedAccent: Appearance.colors.colPrimary
         readonly property color selectedOnAccent: Appearance.colors.colOnPrimary
-        readonly property color outerFill: active ? selectedAccent : Appearance.colors.colLayer1
-        readonly property color previewSurface: darkPreview ? "#302d32" : "#fbf7f8"
-        readonly property color avatarFill: darkPreview ? "#8a838c" : "#dedde1"
-        readonly property color placeholderFill: darkPreview ? "#948b92" : "#dedbdf"
-        readonly property color placeholderAltFill: darkPreview ? "#776f75" : "#d3d0d5"
-        readonly property color waveFill: active ? selectedAccent : (darkPreview ? "#8a858e" : "#ccc8cd")
-        readonly property color trackFill: darkPreview ? "#6d6870" : "#d7d3d8"
-        readonly property color labelText: active ? selectedOnAccent : Appearance.colors.colOnLayer1
+        readonly property color outerFill: active
+                                         ? (pressed ? Appearance.colors.colPrimaryActive
+                                                    : (hovered ? Appearance.colors.colPrimaryHover : selectedAccent))
+                                         : (pressed ? Appearance.colors.colLayer1Active
+                                                    : (hovered ? Appearance.colors.colLayer1Hover : Appearance.colors.colLayer1))
+        readonly property color previewSurface: matchesCurrentMode
+                                              ? (darkPreview ? Appearance.m3colors.m3surfaceContainerHighest
+                                                             : Appearance.m3colors.m3surfaceContainerLowest)
+                                              : Appearance.m3colors.m3inverseSurface
+        readonly property color previewOnSurface: matchesCurrentMode
+                                                ? Appearance.m3colors.m3onSurface
+                                                : Appearance.m3colors.m3inverseOnSurface
+        readonly property color avatarFill: Appearance.mix(previewSurface, previewOnSurface, darkPreview ? 0.52 : 0.85)
+        readonly property color placeholderFill: Appearance.mix(previewSurface, previewOnSurface, darkPreview ? 0.48 : 0.84)
+        readonly property color placeholderAltFill: Appearance.mix(previewSurface, previewOnSurface, darkPreview ? 0.62 : 0.80)
+        readonly property color waveFill: active ? selectedAccent : Appearance.mix(previewSurface, previewOnSurface, darkPreview ? 0.52 : 0.76)
+        readonly property color trackFill: Appearance.mix(previewSurface, previewOnSurface, darkPreview ? 0.66 : 0.82)
+        readonly property color labelText: active ? selectedOnAccent : (hovered ? Appearance.colors.colOnSurface : Appearance.colors.colOnLayer1)
 
         signal clicked
 
+        implicitWidth: 288
+        implicitHeight: 180
+        Layout.fillWidth: true
+        Layout.minimumWidth: 0
         Layout.preferredWidth: 288
         Layout.preferredHeight: 180
         scale: cardMouse.pressed ? 0.985 : 1
@@ -157,7 +196,16 @@ StyledFlickable {
             anchors.fill: parent
             radius: 13
             color: themeCard.outerFill
-            border.width: 0
+            border.width: themeCard.hovered && !themeCard.active ? 1 : 0
+            border.color: Appearance.colors.colOutlineVariant
+
+            Behavior on color {
+                ColorAnimation {
+                    duration: Appearance.animation.expressiveFastEffects.duration
+                    easing.type: Appearance.animation.expressiveFastEffects.type
+                    easing.bezierCurve: Appearance.animation.expressiveFastEffects.bezierCurve
+                }
+            }
         }
 
         Rectangle {
@@ -170,7 +218,12 @@ StyledFlickable {
             color: "transparent"
 
             Text {
-                anchors.centerIn: parent
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.margins: 8
+                horizontalAlignment: Text.AlignHCenter
+                elide: Text.ElideRight
                 text: themeCard.title
                 color: themeCard.labelText
                 font.family: Fonts.ui
@@ -210,7 +263,7 @@ StyledFlickable {
                 spacing: 8
 
                 Rectangle {
-                    width: Math.min(154, previewPane.width - 92)
+                    width: Math.max(24, Math.min(154, previewPane.width - 92))
                     height: 18
                     radius: 5
                     color: themeCard.placeholderFill
@@ -218,7 +271,7 @@ StyledFlickable {
                 }
 
                 Rectangle {
-                    width: Math.min(124, previewPane.width - 118)
+                    width: Math.max(24, Math.min(124, previewPane.width - 118))
                     height: 16
                     radius: 5
                     color: themeCard.placeholderAltFill
@@ -229,7 +282,7 @@ StyledFlickable {
             MiniMaterialWaveLine {
                 x: 18
                 y: 66
-                width: previewPane.width - 36
+                width: Math.max(0, previewPane.width - 36)
                 height: 18
                 waveColor: themeCard.waveFill
                 trackColor: themeCard.trackFill
@@ -243,10 +296,11 @@ StyledFlickable {
             PreviewSegmentGroup {
                 x: 13
                 y: previewPane.height - height - 8
-                width: previewPane.width - 26
+                width: Math.max(0, previewPane.width - 26)
                 height: 33
                 selected: themeCard.active
                 darkPreview: themeCard.darkPreview
+                normalFill: Appearance.mix(themeCard.previewSurface, themeCard.previewOnSurface, themeCard.darkPreview ? 0.72 : 0.86)
                 selectedFill: themeCard.selectedAccent
                 checkColor: themeCard.selectedOnAccent
             }
@@ -277,6 +331,7 @@ StyledFlickable {
 
         Layout.fillWidth: true
         Layout.preferredHeight: Math.max(58, selectLabelColumn.implicitHeight + 16)
+        opacity: enabled ? 1 : 0.45
 
         RowLayout {
             anchors.fill: parent
@@ -286,6 +341,7 @@ StyledFlickable {
                 id: selectLabelColumn
 
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
                 Layout.alignment: Qt.AlignVCenter
                 spacing: 3
 
@@ -312,7 +368,8 @@ StyledFlickable {
 
             SearchSelectMenuField {
                 closeOnAccept: false
-                Layout.preferredWidth: selectRow.fieldWidth
+                Layout.preferredWidth: Math.min(selectRow.fieldWidth, Math.max(120, Math.floor((selectRow.width - 16) * 0.52)))
+                Layout.maximumWidth: Math.max(0, selectRow.width)
                 Layout.preferredHeight: 40
                 Layout.alignment: Qt.AlignVCenter
                 options: selectRow.options
@@ -336,6 +393,7 @@ StyledFlickable {
 
         Layout.fillWidth: true
         Layout.preferredHeight: Math.max(58, toggleLabelColumn.implicitHeight + 16)
+        opacity: enabled ? 1 : 0.45
 
         RowLayout {
             anchors.fill: parent
@@ -344,6 +402,7 @@ StyledFlickable {
             Column {
                 id: toggleLabelColumn
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
                 Layout.alignment: Qt.AlignVCenter
                 spacing: 3
 
@@ -354,6 +413,7 @@ StyledFlickable {
                     font.family: Fonts.ui
                     font.pixelSize: 15
                     font.weight: Font.Medium
+                    elide: Text.ElideRight
                 }
 
                 Text {
@@ -390,6 +450,7 @@ StyledFlickable {
 
         Layout.fillWidth: true
         spacing: 6
+        opacity: enabled ? 1 : 0.45
 
         function formatValue(displayValue) {
             return Math.round(displayValue).toString() + (suffix !== "" ? " " + suffix : "");
@@ -401,12 +462,14 @@ StyledFlickable {
 
             Text {
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
                 Layout.alignment: Qt.AlignVCenter
                 text: sliderRow.title
                 color: Appearance.colors.colOnSurface
                 font.family: Fonts.ui
                 font.pixelSize: 15
                 font.weight: Font.Medium
+                elide: Text.ElideRight
             }
 
             Text {
@@ -449,7 +512,7 @@ StyledFlickable {
     ColumnLayout {
         id: contentColumn
         width: root.pageContentWidth
-        x: Math.max(24, (root.width - width) / 2)
+        x: Math.max(Metrics.pageMargin, (root.width - width) / 2)
         y: 28
         spacing: 30
 
@@ -495,23 +558,49 @@ StyledFlickable {
             iconName: "colors"
 
             ColumnLayout {
-                Layout.alignment: Qt.AlignLeft
+                id: schemeRowsColumn
+
+                Layout.fillWidth: true
                 spacing: 4
 
-                StyledButtonGroup {
-                    Layout.alignment: Qt.AlignLeft
-                    model: PersonalizationConfig.matugenSchemes.slice(0, 5)
-                    currentValue: PersonalizationConfig.matugenScheme
-                    horizontalPadding: 24
-                    onValueSelected: value => ThemeService.setMatugenScheme(value)
-                }
+                readonly property int rowPadding: root.pageContentWidth < 520 ? 16 : 24
+                readonly property var schemeRows: root.pageContentWidth < 460
+                    ? [
+                          PersonalizationConfig.matugenSchemes.slice(0, 3),
+                          PersonalizationConfig.matugenSchemes.slice(3, 6),
+                          PersonalizationConfig.matugenSchemes.slice(6, 9)
+                      ]
+                    : [
+                          PersonalizationConfig.matugenSchemes.slice(0, 5),
+                          PersonalizationConfig.matugenSchemes.slice(5, 9)
+                      ]
 
-                StyledButtonGroup {
-                    Layout.alignment: Qt.AlignLeft
-                    model: PersonalizationConfig.matugenSchemes.slice(5, 9)
-                    currentValue: PersonalizationConfig.matugenScheme
-                    horizontalPadding: 24
-                    onValueSelected: value => ThemeService.setMatugenScheme(value)
+                Repeater {
+                    model: schemeRowsColumn.schemeRows
+
+                    delegate: Flickable {
+                        id: schemeRowFlickable
+
+                        required property var modelData
+
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: schemeGroup.implicitHeight
+                        contentWidth: schemeGroup.implicitWidth
+                        contentHeight: schemeGroup.implicitHeight
+                        boundsBehavior: Flickable.StopAtBounds
+                        flickableDirection: Flickable.HorizontalFlick
+                        interactive: contentWidth > width
+                        clip: true
+
+                        StyledButtonGroup {
+                            id: schemeGroup
+
+                            model: schemeRowFlickable.modelData
+                            currentValue: PersonalizationConfig.matugenScheme
+                            horizontalPadding: schemeRowsColumn.rowPadding
+                            onValueSelected: value => ThemeService.setMatugenScheme(value)
+                        }
+                    }
                 }
             }
         }
@@ -536,13 +625,17 @@ StyledFlickable {
                         required property var modelData
                         implicitWidth: 84
                         implicitHeight: 56
+                        pointingHandCursor: true
+                        toggled: PersonalizationConfig.superKeyStyle === modelData.value
+                        selectedStateLayerEnabled: true
                         buttonRadius: Appearance.rounding.small
                         containerColor: PersonalizationConfig.superKeyStyle === modelData.value
                                         ? Appearance.colors.colSecondaryContainer :
                                           Appearance.colors.colLayer2
-                        hoverStateLayerOpacity: 0.08
-                        pressedStateLayerOpacity: 0.12
-                        focusStateLayerOpacity: 0.12
+                        hoverStateLayerOpacity: Appearance.interaction.hoverStateLayerOpacity
+                        pressedStateLayerOpacity: Appearance.interaction.pressedStateLayerOpacity
+                        focusStateLayerOpacity: Appearance.interaction.focusStateLayerOpacity
+                        selectedStateLayerOpacity: Appearance.interaction.selectedStateLayerOpacity
                         Accessible.name: modelData.label
                         Accessible.role: Accessible.RadioButton
                         Accessible.checked: PersonalizationConfig.superKeyStyle === modelData.value
@@ -574,12 +667,23 @@ StyledFlickable {
             }
             iconName: "lock"
 
+            InlineStatusBanner {
+                Layout.fillWidth: true
+                tone: "info"
+                message: !ThemeService.isNiriSession
+                         ? qsTr("Unavailable on GNOME; lock screen appearance is managed by GNOME Shell.")
+                         : qsTr("Lock screen style selection is managed by the active desktop session.")
+            }
+
             SearchSelectMenuField {
                 closeOnAccept: true
-                Layout.preferredWidth: 240
+                Layout.fillWidth: true
+                Layout.maximumWidth: 240
                 Layout.preferredHeight: 40
-                options: PersonalizationConfig.lockScreenStyles
-                value: PersonalizationConfig.lockScreenStyle
+                enabled: false
+                opacity: enabled ? 1 : 0.45
+                options: [{value: "gnome", label: qsTr("GNOME secure lock screen")}]
+                value: "gnome"
                 textRole: "label"
                 valueRole: "value"
                 onAccepted: value => PersonalizationConfig.setLockScreenStyle(value)
@@ -597,8 +701,17 @@ StyledFlickable {
             }
             iconName: "mouse"
 
+            InlineStatusBanner {
+                Layout.fillWidth: true
+                visible: !ThemeService.isNiriSession
+                tone: "info"
+                message: qsTr("Unavailable on GNOME; cursor theme, size, and inactivity hiding are managed by GNOME Settings.")
+            }
+
             CursorThemeSelect {
                 enabled: NiriConfigService.ready("cursor")
+                opacity: enabled ? 1 : 0.45
+                fieldWidth: Math.min(240, Math.max(120, Math.floor((root.pageContentWidth - 16) * 0.52)))
                 cursorThemes: ThemeService.availableCursorThemes
                 currentCursorTheme: PersonalizationConfig.cursorTheme
                 onAccepted: value => ThemeService.setCursorTheme(value)

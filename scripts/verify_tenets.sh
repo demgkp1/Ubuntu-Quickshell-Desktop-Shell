@@ -117,15 +117,17 @@ else
     echo -e "${GREEN}[PASS] imports/Clavis/ 伪造 Mock 树已彻底物理销毁。${NC}"
 fi
 
-# 2. 全量检索旧 C++ 模块导入 (彻底废除白名单)
-CLAVIS_IMPORTS=$(grep -rnE "import[[:space:]]+Clavis\." "$PROJECT_DIR/src/" 2>/dev/null || true)
-CLAVIS_COUNT=$(echo "$CLAVIS_IMPORTS" | { grep -v "^$" || true; } | wc -l)
-if [ "$CLAVIS_COUNT" -gt 0 ]; then
-    echo -e "${RED}[FAIL] 发现 ${CLAVIS_COUNT} 处残留的旧 C++ 模块导入（天花板上限: 0 处）：${NC}"
-    echo "$CLAVIS_IMPORTS"
+# 2. Native imports are valid only with built, runtime-loaded plugins. The GNOME
+# port deliberately restores native capabilities; banning all C++ produced stubs.
+# No per-URI allowlist, no hand-written native qmldir, no grep-based success.
+if [ -d "$PROJECT_DIR/imports/M3Shapes" ]; then
+    echo -e "${RED}[FAIL] Local M3Shapes shadow module must be removed.${NC}"
     VIOLATIONS=$((VIOLATIONS + 1))
+elif "$PROJECT_DIR/scripts/native-check.sh"; then
+    echo -e "${GREEN}[PASS] Native dependencies were loaded and exercised by QML.${NC}"
 else
-    echo -e "${GREEN}[PASS] 全仓旧 C++ 模块导入已彻底清零归零 (0 处)！${NC}"
+    echo -e "${RED}[FAIL] Native runtime validation failed; build with scripts/build.sh first.${NC}"
+    VIOLATIONS=$((VIOLATIONS + 1))
 fi
 
 # 3. 使用字符流括号深度解析状态机扫描真实纯空桩、常量返回假实现桩、伪日志桩与死变量桩
@@ -377,6 +379,6 @@ if [ "$VIOLATIONS" -gt 0 ]; then
     echo -e "${RED}[FATAL] 门禁阻断：存在 ${VIOLATIONS} 项严重违规，禁止提交与合并！${NC}"
     exit 1
 else
-    echo -e "${GREEN}[SUCCESS] 终极工业军规门禁全部校验通过！无任何破绽与盲区！${NC}"
+    echo -e "${GREEN}[SUCCESS] 本次门禁检查通过；这不证明真实 GNOME 桌面功能或视觉已全部验证。${NC}"
     exit 0
 fi

@@ -31,7 +31,9 @@ Button {
     property real pressedStateLayerOpacity: 1
     property real focusStateLayerOpacity: 1
     property bool pointerPressActive: false
-    readonly property bool pointerHovered: pointerArea.containsMouse
+    property bool _pointerHovered: false
+    readonly property bool pointerHovered: root.enabled && (root._pointerHovered || pointerArea.containsMouse)
+    readonly property string effectiveText: root.buttonText.length > 0 ? root.buttonText : root.text
     readonly property real buttonEffectiveRadius: root.down ? root.buttonRadiusPressed : root.buttonRadius
 
     function clearRipple() {
@@ -46,11 +48,24 @@ Button {
         rippleEffect.finish();
     }
 
+    function resetPointerState() {
+        root.down = false;
+        root.pointerPressActive = false;
+        if (rippleEffect.active)
+            root.finishRipple();
+    }
+
     opacity: root.enabled ? 1 : 0.4
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
-    Accessible.name: root.text.length > 0 ? root.text : root.buttonText
+    Accessible.name: root.effectiveText
     Accessible.role: Accessible.Button
+    onEnabledChanged: {
+        if (!root.enabled) {
+            root._pointerHovered = false;
+            root.resetPointerState();
+        }
+    }
     onPressedChanged: {
         if (root.pressed && !root.pointerPressActive)
             root.beginRipple(root.width / 2, root.height / 2);
@@ -70,8 +85,9 @@ Button {
         anchors.fill: parent
         enabled: root.enabled
         hoverEnabled: true
-        cursorShape: Qt.ArrowCursor
+        cursorShape: root.pointingHandCursor ? Qt.PointingHandCursor : Qt.ArrowCursor
         acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+        onEntered: root._pointerHovered = true
         onPressed: (event) => {
             if (event.button === Qt.RightButton) {
                 if (root.altAction)
@@ -95,7 +111,7 @@ Button {
         onReleased: (event) => {
             root.down = false;
             root.pointerPressActive = false;
-            if (event.button === Qt.LeftButton)
+            if (event.button === Qt.LeftButton && rippleEffect.active)
                 root.finishRipple();
 
         }
@@ -109,10 +125,13 @@ Button {
                 root.doubleClickAction(event);
 
         }
+        onExited: {
+            root._pointerHovered = false;
+            root.resetPointerState();
+        }
         onCanceled: {
-            root.down = false;
-            root.pointerPressActive = false;
-            root.finishRipple();
+            root._pointerHovered = false;
+            root.resetPointerState();
         }
     }
 
@@ -163,7 +182,7 @@ Button {
     }
 
     contentItem: Text {
-        text: root.buttonText.length > 0 ? root.buttonText : root.text
+        text: root.effectiveText
         color: Appearance.colors.colOnSurface
         font.family: Fonts.ui
         font.pixelSize: 13

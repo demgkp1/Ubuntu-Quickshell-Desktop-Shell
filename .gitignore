@@ -12,3 +12,7 @@ dist/
 
 # User local configs
 *.local
+
+# Python runtime caches
+__pycache__/
+*.pyc

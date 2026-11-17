@@ -73,7 +73,7 @@ Singleton {
     Process {
         id: helperProc
         command: ["python3", root.helperScript, "daemon"]
-        running: true
+        running: Quickshell.env("CLAVIS_LEGACY_X11_HELPER") === "1"
 
         stdout: SplitParser {
             onRead: data => {

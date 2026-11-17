@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
+import Clavis.Runtime
 import qs.Common
 import qs.Services
 
@@ -12,15 +13,14 @@ PanelWindow {
     readonly property bool isActive: RegionSelectionService.active
 
     screen: targetScreen || (Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null)
-    property int x: targetScreen && targetScreen.geometry ? targetScreen.geometry.x : 0
-    property int y: targetScreen && targetScreen.geometry ? targetScreen.geometry.y : 0
     implicitWidth: targetScreen && targetScreen.geometry ? targetScreen.geometry.width : 1920
     implicitHeight: targetScreen && targetScreen.geometry ? targetScreen.geometry.height : 1080
 
     // Persistent mapping under Mutter X11 to avoid compositor recreate/unmap lag.
     visible: true
     color: "transparent"
-    exclusiveZone: 0
+    exclusionMode: ExclusionMode.Ignore
+    PanelReservation { target: root.contentItem; placement: "screen" }
 
     anchors {
         left: true

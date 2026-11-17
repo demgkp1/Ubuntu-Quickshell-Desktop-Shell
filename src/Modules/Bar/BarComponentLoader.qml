@@ -16,6 +16,14 @@ Loader {
     required property var axis
     required property Item barVisualItem
     property bool vertical: false
+    readonly property real fallbackScreenWidth: root.screen && root.screen.geometry
+        ? root.screen.geometry.width : (root.screen ? root.screen.width : 1920)
+    readonly property real fallbackScreenHeight: root.screen && root.screen.geometry
+        ? root.screen.geometry.height : (root.screen ? root.screen.height : 1080)
+    readonly property real referenceBarWidth: root.barVisualItem && root.barVisualItem.width > 0
+        ? root.barVisualItem.width : root.fallbackScreenWidth
+    readonly property real referenceBarHeight: root.barVisualItem && root.barVisualItem.height > 0
+        ? root.barVisualItem.height : root.fallbackScreenHeight
 
     sourceComponent: {
         switch (root.componentId) {
@@ -59,8 +67,7 @@ Loader {
         id: activeWindowComponent
 
         ActiveWindow {
-            maximumTitleWidth: root.vertical ? 250 : Math.max(48, Math.min(250, root.barVisualItem.width
-                                                                           * 0.18))
+            maximumTitleWidth: root.vertical ? 250 : Math.max(48, Math.min(250, root.referenceBarWidth * 0.18))
             vertical: root.vertical
         }
     }
@@ -69,8 +76,8 @@ Loader {
         id: mediaComponent
 
         MediaBar {
-            maximumTitleWidth: Math.max(48, Math.min(180, (root.vertical ? root.barVisualItem.height :
-                                                                           root.barVisualItem.width) * 0.12))
+            maximumTitleWidth: Math.max(48, Math.min(180, (root.vertical ? root.referenceBarHeight :
+                                                                           root.referenceBarWidth) * 0.12))
             vertical: root.vertical
         }
     }
@@ -80,7 +87,7 @@ Loader {
 
         Tray {
             screen: root.screen
-            edge: root.axis.edge
+            edge: root.axis ? root.axis.edge : "top"
             vertical: root.vertical
             barVisualItem: root.barVisualItem
         }

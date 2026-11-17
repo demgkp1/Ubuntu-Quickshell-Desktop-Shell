@@ -21,7 +21,7 @@ StyledFlickable {
 
     property string selectedDesktopOutput: ""
     property string selectedOverviewOutput: ""
-    readonly property bool desktopUsesAwww: PersonalizationConfig.desktopWallpaperBackend === "awww"
+    readonly property bool desktopUsesAwww: WallpaperService.desktopWallpaperBackend === "awww"
     readonly property bool awwwStepSupported: AwwwWallpaperService.supportsStep(
                                                   PersonalizationConfig.awwwDesktopTransitionType)
     readonly property bool awwwDurationSupported: AwwwWallpaperService.supportsDuration(
@@ -32,33 +32,17 @@ StyledFlickable {
                                                                                 && awwwBezierSupported :
                                                                                 PersonalizationConfig.wallpaperTransitionType
                                                                                 !== "none"
-    readonly property var outputOptions: {
-        const result = [({
-                             "value": "",
-                             "label": qsTr("Global")
-                         })];
-        for (let index = 0; index < Quickshell.screens.length; index += 1) {
-            const name = String(Quickshell.screens[index].name);
-            result.push({
-                            "value": name,
-                            "label": name
-                        });
-        }
-        return result;
-    }
+    readonly property var outputOptions: [{value: "", label: qsTr("GNOME global wallpaper")}]
     readonly property string currentWallpaperPath: WallpaperService.wallpaperForScreen(selectedDesktopOutput)
     readonly property string currentOverviewPath: WallpaperService.overviewWallpaperForScreen(
                                                       selectedOverviewOutput)
     readonly property bool currentWallpaperIsColor: WallpaperService.isColorSource(currentWallpaperPath)
     readonly property bool currentWallpaperIsImage: WallpaperService.isImagePath(currentWallpaperPath)
-    readonly property string currentDesktopFillMode: selectedDesktopOutput !== ""
-                                                     ? PersonalizationConfig.monitorFillMode(
-                                                           selectedDesktopOutput) :
-                                                       PersonalizationConfig.wallpaperFillMode
+    readonly property string currentDesktopFillMode: WallpaperService.fillModeForScreen("")
     readonly property bool panoramaSelected: currentDesktopFillMode === "panorama"
     readonly property real effectivePreferredScale: panoramaSelected ? 1 :
                                                                        PersonalizationConfig.parallaxPreferredScale
-    readonly property bool preferredScaleControlEnabled: !desktopUsesAwww && !panoramaSelected
+    readonly property bool preferredScaleControlEnabled: false
     readonly property var desktopFillModeOptions: PersonalizationConfig.desktopFillModes.map(option => ({
         "value": option.value,
         "label": option.label,
@@ -99,7 +83,7 @@ StyledFlickable {
     }
 
     function desktopFillModeOptionEnabled(value, usesAwww) {
-        return value !== "panorama" || !usesAwww;
+        return WallpaperService.available && ["Stretch", "Fit", "Fill", "Tile", "Pad", "panorama"].indexOf(value) >= 0;
     }
 
     component Section: ColumnLayout {
@@ -265,24 +249,13 @@ StyledFlickable {
         y: 24
         spacing: 30
 
-        NiriSetupPrompt {
-            Layout.fillWidth: true
-            title: qsTr("Overview integration")
-            description: qsTr(
-                             "Create or connect backdrop rules and make the global workspace background transparent.")
-            integrationState: NiriConfigService.state("layer-rules")
-            busy: NiriConfigService.busy && NiriConfigService.activeFeature === "layer-rules"
-            blocked: NiriConfigService.busy
-            error: NiriConfigService.error
-            onSetupRequested: NiriConfigService.setup("layer-rules")
-        }
-
         InlineStatusBanner {
             Layout.fillWidth: true
-            visible: NiriConfigService.snapshot.overviewSatisfied === true && !NiriConfigService.ready(
-                         "layer-rules")
-            message: qsTr("Overview is already configured outside Clavis")
+            tone: "warning"
+            message: qsTr("GNOME owns desktop and overview wallpaper. Fill mode is global; per-output and custom overview effects are unavailable.")
         }
+
+
 
         Component {
             id: desktopManagerSectionComponent
@@ -303,24 +276,9 @@ StyledFlickable {
                     forbiddenDisabledCursor: true
                     Layout.preferredWidth: 168
                     Layout.preferredHeight: Metrics.controlHeightM
-                    options: [({
-                                   "value": "quickshell",
-                                   "label": "Quickshell",
-                                   "enabled": true
-                               }), ({
-                                        "value": "awww",
-                                        "label": "awww",
-                                        "enabled": AwwwWallpaperService.available
-                                                   && WallpaperService.canUseAwww,
-                                        "tooltip": AwwwWallpaperService.available ? (
-                                                                                        WallpaperService.canUseAwww
-                                                                                        ? "" : qsTr(
-                                                                                              "Select an image wallpaper before switching to awww")) :
-                                                                                    AwwwWallpaperService.probeComplete
-                                                                                    ? qsTr("The awww or awww-daemon command is missing") :
-                                                                                      qsTr("Detecting awww…")
-                                    })]
-                    value: PersonalizationConfig.desktopWallpaperBackend
+                    options: [{value: "gnome", label: "GNOME Shell", enabled: true}]
+                    value: "gnome"
+                    enabled: false
                     Accessible.name: qsTr("Desktop wallpaper manager")
                     onAccepted: value => WallpaperService.setDesktopWallpaperBackend(value)
                 }
@@ -362,7 +320,7 @@ StyledFlickable {
                         previewSource: WallpaperPaletteSession.previewForScreen("desktop",
                                                                                 root.selectedDesktopOutput)
                         onChooseFile: root.chooseWallpaperFile()
-                        onChooseColor: root.chooseWallpaperColor()
+                        onChooseColor: WallpaperService.unsupported(qsTr("GNOME wallpaper color effects are unavailable; select an image file instead"))
                         onClearWallpaper: WallpaperService.clearWallpaper(root.selectedDesktopOutput)
                     }
 
@@ -440,9 +398,11 @@ StyledFlickable {
                         Layout.fillWidth: true
                         iconName: "splitscreen"
                         title: qsTr("Per-monitor wallpapers")
+                        supportingText: qsTr("Unavailable; GNOME selection and fill mode are global")
 
                         trailing: StyledSwitch {
-                            checked: PersonalizationConfig.perMonitorWallpaper
+                            enabled: WallpaperService.supportsPerOutput
+                            checked: false
                             Accessible.name: qsTr("Per-monitor wallpapers")
                             onToggled: PersonalizationConfig.setPerMonitorWallpaper(checked)
                         }
@@ -481,8 +441,13 @@ StyledFlickable {
                     '{"id":"wallpaper.section.transition","route":"wallpaper","title":"Transition","context":"WallpaperPage","icon":"wallpaper","aliases":[]}'
             }
             iconName: "animation"
-
+            InlineStatusBanner {
+                Layout.fillWidth: true
+                tone: "warning"
+                message: qsTr("Clavis custom transitions are unavailable for the GNOME desktop. The disabled previews below do not change the desktop wallpaper.")
+            }
             ColumnLayout {
+                enabled: WallpaperService.supportsTransitions
                 Layout.fillWidth: true
                 spacing: 10
 
@@ -812,6 +777,7 @@ StyledFlickable {
 
         Section {
             id: searchSection3
+            enabled: WallpaperService.supportsOverviewWallpaper
             title: searchAnchor3.title
             SettingsSearchAnchor {
                 id: searchAnchor3
@@ -964,6 +930,7 @@ StyledFlickable {
 
         Section {
             id: searchSection4
+            enabled: WallpaperService.supportsOverviewWallpaper
             title: searchAnchor4.title
             SettingsSearchAnchor {
                 id: searchAnchor4
@@ -1028,6 +995,7 @@ StyledFlickable {
                     Layout.fillWidth: true
                     iconName: "splitscreen"
                     title: qsTr("Per-monitor wallpapers")
+                        supportingText: qsTr("Unavailable; GNOME selection and fill mode are global")
 
                     trailing: StyledSwitch {
                         checked: PersonalizationConfig.overviewPerMonitorWallpaper
@@ -1190,7 +1158,7 @@ StyledFlickable {
             WallpaperService.setWallpaperFolder(path);
         }
         onFileSelected: path => {
-            WallpaperService.setWallpaperFromFile(path, root.selectedDesktopOutput);
+            WallpaperService.setWallpaperFromFile(path, "");
         }
     }
 

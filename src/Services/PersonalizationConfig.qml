@@ -867,6 +867,9 @@ Singleton {
     property real shellBackgroundOpacity: 1
     property bool shellBlurEnabled: false
     property bool shellBlurXray: true
+    property bool windowOpacityEnabled: false
+    property real activeWindowOpacity: 0.92
+    property real inactiveWindowOpacity: 0.82
     property bool keepSidebarsLoaded: true
     property var sidebarPositions: ({
                                         dashboard: "left",
@@ -1509,6 +1512,36 @@ Singleton {
         setValue("shellBlurXray", !!value);
     }
 
+    function setWindowOpacityEnabled(enabled) {
+        setValue("windowOpacityEnabled", !!enabled);
+    }
+
+    function setActiveWindowOpacity(value) {
+        setValue("activeWindowOpacity", normalizedBoundedReal(value, 0.92, 0.2, 1.0));
+    }
+
+    function setInactiveWindowOpacity(value) {
+        setValue("inactiveWindowOpacity", normalizedBoundedReal(value, 0.82, 0.2, 1.0));
+    }
+
+    function resetWindowOpacityDefaults() {
+        let changed = false;
+        if (root.windowOpacityEnabled !== false) {
+            root.windowOpacityEnabled = false;
+            changed = true;
+        }
+        if (root.activeWindowOpacity !== 0.92) {
+            root.activeWindowOpacity = 0.92;
+            changed = true;
+        }
+        if (root.inactiveWindowOpacity !== 0.82) {
+            root.inactiveWindowOpacity = 0.82;
+            changed = true;
+        }
+        if (changed)
+            root.save();
+    }
+
     function setDashboardSidebarSide(value) {
         const side = SidebarPolicy.normalizeSide(value, "left");
         if (side !== root.dashboardSidebarSide)
@@ -1929,7 +1962,10 @@ Singleton {
             "effects": {
                 "shellBackgroundOpacity": root.shellBackgroundOpacity,
                 "shellBlurEnabled": root.shellBlurEnabled,
-                "shellBlurXray": root.shellBlurXray
+                "shellBlurXray": root.shellBlurXray,
+                "windowOpacityEnabled": root.windowOpacityEnabled,
+                "activeWindowOpacity": root.activeWindowOpacity,
+                "inactiveWindowOpacity": root.inactiveWindowOpacity
             },
             "keystone": {
                 "enabled": root.keystoneEnabled,
@@ -2071,6 +2107,10 @@ Singleton {
         root.shellBlurEnabled = typeof effects.shellBlurEnabled === "boolean" ? effects.shellBlurEnabled :
                                                                                 false;
         root.shellBlurXray = typeof effects.shellBlurXray === "boolean" ? effects.shellBlurXray : true;
+        root.windowOpacityEnabled = typeof effects.windowOpacityEnabled === "boolean"
+                ? effects.windowOpacityEnabled : false;
+        root.activeWindowOpacity = normalizedBoundedReal(effects.activeWindowOpacity, 0.92, 0.2, 1.0);
+        root.inactiveWindowOpacity = normalizedBoundedReal(effects.inactiveWindowOpacity, 0.82, 0.2, 1.0);
         root.keystoneMediaProgressStyle = normalizedOption(root.keystoneMediaProgressOptions,
                                                            media.progressStyle, "wave");
         root.keystoneMediaCoverStyle = normalizedOption(root.keystoneMediaCoverOptions, media.coverStyle
@@ -2157,7 +2197,8 @@ Singleton {
             return true;
 
         return effects.shellBackgroundOpacity === undefined || effects.shellBlurEnabled === undefined
-                || effects.shellBlurXray === undefined;
+                || effects.shellBlurXray === undefined || effects.windowOpacityEnabled === undefined
+                || effects.activeWindowOpacity === undefined || effects.inactiveWindowOpacity === undefined;
     }
 
     function needsThemeMigration(parsed) {
@@ -2255,6 +2296,58 @@ Singleton {
             root.storeReady = true;
             configFile.reload();
         }
+    }
+
+    function syncWindowOpacityToBackend() {
+        if (!root.ready || CompositorBackend.name === "niri" || !CompositorBackend.connected
+                || !CompositorBackend.supportsWindowOpacity)
+            return;
+        CompositorBackend.setWindowOpacity(root.windowOpacityEnabled, root.activeWindowOpacity,
+                                           root.inactiveWindowOpacity);
+    }
+
+    function scheduleWindowOpacitySync() {
+        if (!root.ready || CompositorBackend.name === "niri" || !CompositorBackend.connected
+                || !CompositorBackend.supportsWindowOpacity) {
+            windowOpacitySyncTimer.stop();
+            return;
+        }
+        windowOpacitySyncTimer.restart();
+    }
+
+    onWindowOpacityEnabledChanged: root.scheduleWindowOpacitySync()
+    onActiveWindowOpacityChanged: root.scheduleWindowOpacitySync()
+    onInactiveWindowOpacityChanged: root.scheduleWindowOpacitySync()
+    onReadyChanged: {
+        if (root.ready)
+            root.scheduleWindowOpacitySync();
+    }
+
+    Connections {
+        target: CompositorBackend
+        enabled: CompositorBackend.name !== "niri"
+
+        function onConnectedChanged() {
+            if (CompositorBackend.connected)
+                root.scheduleWindowOpacitySync();
+            else
+                windowOpacitySyncTimer.stop();
+        }
+
+        function onSupportsWindowOpacityChanged() {
+            if (CompositorBackend.supportsWindowOpacity)
+                root.scheduleWindowOpacitySync();
+            else
+                windowOpacitySyncTimer.stop();
+        }
+    }
+
+    Timer {
+        id: windowOpacitySyncTimer
+
+        interval: 100
+        repeat: false
+        onTriggered: root.syncWindowOpacityToBackend()
     }
 
     Timer {

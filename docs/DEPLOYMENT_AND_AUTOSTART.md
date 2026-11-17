@@ -1,3 +1,5 @@
+> **2026-11-16 更新：** 下文包含旧 Ubuntu 24.04/纯 QML 移植的历史描述，不代表当前实现。当前目标为 Ubuntu 26.04 / GNOME 50 Wayland，依赖真实原生插件；启动不再隐藏 GNOME UI 或全局终止 Quickshell。请以根目录 README 和当前脚本为准。
+
 # Clavis Desktop Shell 部署与开机自启运维指南 (Deployment & Autostart Guide)
 
 本文档面向最终用户与系统运维工程师，详细介绍 **Clavis Desktop Shell (Ubuntu Quickshell)** 在 Ubuntu 24.04 LTS (GNOME Mutter X11) 下的安装部署、开机自启、日常运维与排障指南。

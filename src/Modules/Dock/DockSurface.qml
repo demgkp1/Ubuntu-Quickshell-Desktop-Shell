@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import Quickshell
 import Quickshell.Wayland
+import Clavis.Runtime
 import qs.Common
 import qs.Components
 import qs.Services
@@ -599,16 +600,23 @@ PanelWindow {
 
     // The surface supplies animation/drag space. Input stays in the revealed
     // dock's footprint and edge corridor; hidden docks keep only the trigger.
-    property int x: screen && screen.geometry ? screen.geometry.x : (screen ? screen.x : 0)
-    property int y: screen && screen.geometry ? screen.geometry.y : (screen ? screen.y : 0)
-    implicitWidth: screen && screen.geometry ? screen.geometry.width : (screen ? screen.width : 1920)
-    implicitHeight: screen && screen.geometry ? screen.geometry.height : (screen ? screen.height : 1080)
+    implicitWidth: screen ? screen.width : 0
+    implicitHeight: screen ? screen.height : 0
     color: "transparent"
     anchors.left: horizontal || edge === "left"
     anchors.right: horizontal || edge === "right"
     anchors.top: !horizontal
     anchors.bottom: true
     exclusiveZone: DockService.autoHide ? 0 : restingThickness + edgeOffset
+    PanelReservation {
+        id: reservation
+        target: root.contentItem
+        edge: root.edge
+        thickness: DockService.autoHide ? 0 : root.restingThickness + root.edgeOffset
+    }
+    function placementSnapshot() {
+        return Object.assign({role: "dock", shown: root.shown}, reservation.inspect(glass));
+    }
     // WlrLayershell attached properties break window attachment under Mutter XCB.
     // WlrLayershell.namespace: "clavis-shell-dock"
     // WlrLayershell.layer: WlrLayer.Top

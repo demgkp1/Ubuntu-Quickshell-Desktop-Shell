@@ -14,15 +14,15 @@ Singleton {
     readonly property var _nativeWiredDevices: _nativeDevices.filter(device => device && device.type === DeviceType.Wired)
     readonly property bool hasNativeDevices: _nativeDevices.length > 0
 
-    property bool fallbackWiredConnected: true
+    property bool fallbackWiredConnected: false
     property bool fallbackWifiConnected: false
-    property bool fallbackConnected: true
-    property bool fallbackWifiEnabled: true
+    property bool fallbackConnected: false
+    property bool fallbackWifiEnabled: false
 
-    readonly property bool available: Networking.backend === NetworkBackendType.NetworkManager || true
-    readonly property bool wifiAvailable: hasNativeDevices ? _nativeWifiDevices.length > 0 : true
+    readonly property bool available: Networking.backend === NetworkBackendType.NetworkManager
+    readonly property bool wifiAvailable: available && _nativeWifiDevices.length > 0
     readonly property bool wifiEnabled: hasNativeDevices ? Networking.wifiEnabled : fallbackWifiEnabled
-    readonly property bool wifiHardwareEnabled: hasNativeDevices ? Networking.wifiHardwareEnabled : true
+    readonly property bool wifiHardwareEnabled: available && Networking.wifiHardwareEnabled
     readonly property bool wiredConnected: hasNativeDevices ? _nativeWiredDevices.some(device => device && device.connected) : fallbackWiredConnected
     readonly property bool wifiConnected: hasNativeDevices ? _nativeWifiDevices.some(device => device && device.connected) : fallbackWifiConnected
     readonly property bool connected: hasNativeDevices ? _nativeDevices.some(device => device && device.connected) : fallbackConnected
@@ -51,8 +51,8 @@ Singleton {
 
     readonly property bool ethernetConnected: wiredConnected
     property string wifiSignalIcon: "wifi"
-    property int signalStrength: 85
-    readonly property bool internetAvailable: hasNativeDevices ? (Networking.connectivity === NetworkConnectivity.Full) : true
+    readonly property int signalStrength: root._nativeWifiDevices.reduce((strength, device) => device.connected && device.activeNetwork ? Math.max(strength, Number(device.activeNetwork.signalStrength || 0)) : strength, 0)
+    readonly property bool internetAvailable: hasNativeDevices ? (Networking.connectivity === NetworkConnectivity.Full) : false
     readonly property bool captivePortal: hasNativeDevices ? (Networking.connectivity === NetworkConnectivity.Portal) : false
     readonly property bool limitedConnectivity: hasNativeDevices ? (Networking.connectivity === NetworkConnectivity.Limited) : false
     property bool busy: false
@@ -66,14 +66,7 @@ Singleton {
         connected: root.connected
     })
     property var activeWifi: null
-    property var wiredDevices: hasNativeDevices ? _nativeWiredDevices : [
-        {
-            name: "eth0",
-            deviceName: "Ethernet",
-            hasLink: root.wiredConnected,
-            connected: root.wiredConnected
-        }
-    ]
+    readonly property var wiredDevices: _nativeWiredDevices
     property var availableWifiNetworks: []
     property var savedWifiProfiles: []
     property var wiredProfiles: []
@@ -88,14 +81,14 @@ Singleton {
         if (hasNativeDevices)
             Networking.wifiEnabled = !Networking.wifiEnabled;
         else
-            fallbackWifiEnabled = !fallbackWifiEnabled;
+            root.lastError = qsTr("NetworkManager backend is unavailable");
     }
 
     function setWifiEnabled(v) {
         if (hasNativeDevices)
             Networking.wifiEnabled = !!v;
         else
-            fallbackWifiEnabled = !!v;
+            root.lastError = qsTr("NetworkManager backend is unavailable");
     }
 
     property string passwordRequestSsid: ""

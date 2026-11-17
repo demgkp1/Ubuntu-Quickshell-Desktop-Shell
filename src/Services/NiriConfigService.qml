@@ -1,6 +1,7 @@
 pragma Singleton
 
 import QtQuick
+import QtQml.Models
 import Quickshell
 import Quickshell.Io
 import qs.Common
@@ -11,8 +12,7 @@ Singleton {
 
     readonly property string sessionDesktop: (Quickshell.env("XDG_CURRENT_DESKTOP") || Quickshell.env(
                                                   "XDG_SESSION_DESKTOP") || "").toLowerCase()
-    readonly property bool supported: sessionDesktop.indexOf("niri") !== -1 || (Quickshell.env("NIRI_SOCKET")
-                                                                                || "") !== ""
+    readonly property bool supported: CompositorBackend.name === "niri" && (sessionDesktop.indexOf("niri") !== -1 || (Quickshell.env("NIRI_SOCKET") || "") !== "")
     property var snapshot: ({
                                 fragments: {},
                                 files: [],
@@ -42,7 +42,11 @@ Singleton {
     }
 
     property string activeFeature: ""
+    property string activeOperation: ""
     property bool refreshPending: false
+    property bool windowOpacityManaged: false
+    property bool _windowOpacityTouched: false
+    property double _lastWriteAt: 0
     readonly property bool busy: operation.running
     readonly property string revision: snapshot.revision || ""
     readonly property var bindings: snapshot.bindings || []
@@ -84,7 +88,14 @@ Singleton {
             };
         if (feature === "effects")
             return {
-                xray: PersonalizationConfig.shellBlurXray
+                xray: PersonalizationConfig.shellBlurXray,
+                windowOpacity: {
+                    enabled: PersonalizationConfig.windowOpacityEnabled,
+                    active: PersonalizationConfig.activeWindowOpacity,
+                    inactive: PersonalizationConfig.inactiveWindowOpacity,
+                    managed: root.windowOpacityManaged || root._windowOpacityTouched
+                             || PersonalizationConfig.windowOpacityEnabled
+                }
             };
         if (feature === "cursor")
             return {
@@ -135,17 +146,72 @@ Singleton {
                });
     }
 
+    function effectsNeedSync() {
+        if (!root.supported || !PersonalizationConfig.ready || !root.ready("effects"))
+            return false;
+        const disk = root.snapshot && root.snapshot.effects;
+        if (!disk || typeof disk !== "object")
+            return false;
+        if (Boolean(disk.xray) !== Boolean(PersonalizationConfig.shellBlurXray))
+            return true;
+        const diskOpacity = disk.windowOpacity || ({});
+        if (Boolean(diskOpacity.enabled) !== Boolean(PersonalizationConfig.windowOpacityEnabled))
+            return true;
+        if (PersonalizationConfig.windowOpacityEnabled) {
+            if (Math.abs(Number(diskOpacity.active) - Number(PersonalizationConfig.activeWindowOpacity)) > 0.0005)
+                return true;
+            if (Math.abs(Number(diskOpacity.inactive) - Number(PersonalizationConfig.inactiveWindowOpacity)) > 0.0005)
+                return true;
+        }
+        return false;
+    }
+
+    function scheduleEffectsUpdate() {
+        const effectsState = root.state("effects");
+        if (!root.supported || !PersonalizationConfig.ready
+                || (effectsState !== "ready" && effectsState !== "not-connected"
+                    && effectsState !== "missing" && !(effectsState === "loading" && operation.running))) {
+            effectsUpdateDebounce.stop();
+            return;
+        }
+        effectsUpdateDebounce.restart();
+    }
+
+    function handleWatchedFileChanged() {
+        if (root.supported && !operation.running && (Date.now() - root._lastWriteAt) > 300)
+            fileRefreshDebounce.restart();
+    }
+
     function invoke(request) {
         if (!supported || operation.running)
             return;
         activeFeature = request.feature || "";
+        activeOperation = request.operation || "";
         operation.writing = request.operation !== "status" && request.operation !== "catalog";
-        operation.command = ["python3", Paths.systemScriptsDir + "/niri_config.py", JSON.stringify(request)];
+        operation.command = ["/usr/bin/env", "-u", "LD_LIBRARY_PATH", "-u", "PYTHONPATH", "-u", "PYTHONHOME",
+                             "/usr/bin/python3", Paths.systemScriptsDir + "/niri_config.py", JSON.stringify(request)];
         operation.running = true;
     }
 
     Component.onCompleted: refresh()
-    onSupportedChanged: refresh()
+    onSupportedChanged: {
+        if (!supported) {
+            effectsUpdateDebounce.stop();
+            fileRefreshDebounce.stop();
+            pendingUpdates = ({});
+            refreshPending = false;
+            snapshot = ({
+                            fragments: {},
+                            files: [],
+                            bindings: []
+                        });
+            error = "";
+            readError = "";
+            errorFeature = "";
+            return;
+        }
+        refresh();
+    }
 
     Process {
         id: operation
@@ -157,6 +223,12 @@ Singleton {
             id: diagnostic
         }
         onExited: code => {
+            const completedOperation = root.activeOperation;
+            const wasWriting = operation.writing;
+            if (wasWriting) {
+                root._lastWriteAt = Date.now();
+                fileRefreshDebounce.stop();
+            }
             let response = {};
             try {
                 response = JSON.parse(result.text);
@@ -185,6 +257,8 @@ Singleton {
                                                       });
                     } else {
                         root.snapshot = response;
+                        root.windowOpacityManaged = !!(response.effects && response.effects.windowOpacityManaged)
+                                || root._windowOpacityTouched || PersonalizationConfig.windowOpacityEnabled;
                     }
                 }
                 if (code === 0 && writing)
@@ -198,6 +272,7 @@ Singleton {
                 }
             }
             root.activeFeature = "";
+            root.activeOperation = "";
             const pending = Object.keys(root.pendingUpdates);
             if (pending.length > 0) {
                 root.pendingUpdates = {};
@@ -213,6 +288,12 @@ Singleton {
             } else if (root.refreshPending) {
                 root.refreshPending = false;
                 Qt.callLater(root.refresh);
+            } else if (code === 0 && (completedOperation === "status" || completedOperation === "setup")
+                       && (root.effectsNeedSync()
+                           || (completedOperation === "status" && root._windowOpacityTouched
+                               && (root.state("effects") === "not-connected"
+                                   || root.state("effects") === "missing")))) {
+                Qt.callLater(root.scheduleEffectsUpdate);
             }
         }
     }
@@ -241,8 +322,79 @@ Singleton {
         }
     }
 
-    Item {
-        property var paths: root.snapshot.files || []
-        signal changed
+    Connections {
+        target: PersonalizationConfig
+        enabled: root.supported
+
+        function onReadyChanged() {
+            if (PersonalizationConfig.ready) {
+                if (PersonalizationConfig.windowOpacityEnabled)
+                    root.windowOpacityManaged = true;
+                if (root.effectsNeedSync())
+                    root.scheduleEffectsUpdate();
+            }
+        }
+
+        function onShellBlurXrayChanged() {
+            root.scheduleEffectsUpdate();
+        }
+
+        function onWindowOpacityEnabledChanged() {
+            if (PersonalizationConfig.ready)
+                root._windowOpacityTouched = true;
+            if (PersonalizationConfig.windowOpacityEnabled)
+                root.windowOpacityManaged = true;
+            root.scheduleEffectsUpdate();
+        }
+
+        function onActiveWindowOpacityChanged() {
+            if (PersonalizationConfig.ready)
+                root._windowOpacityTouched = true;
+            if (PersonalizationConfig.windowOpacityEnabled)
+                root.scheduleEffectsUpdate();
+        }
+
+        function onInactiveWindowOpacityChanged() {
+            if (PersonalizationConfig.ready)
+                root._windowOpacityTouched = true;
+            if (PersonalizationConfig.windowOpacityEnabled)
+                root.scheduleEffectsUpdate();
+        }
+    }
+
+    Timer {
+        id: effectsUpdateDebounce
+        interval: 120
+        repeat: false
+        onTriggered: {
+            const effectsState = root.state("effects");
+            if (effectsState === "ready") {
+                root.update("effects");
+            } else if (effectsState === "not-connected" || effectsState === "missing"
+                       || (effectsState === "loading" && operation.running)) {
+                if (root.busy)
+                    effectsUpdateDebounce.restart();
+                else
+                    root.setup("effects");
+            }
+        }
+    }
+
+    Timer {
+        id: fileRefreshDebounce
+        interval: 150
+        repeat: false
+        onTriggered: root.refresh()
+    }
+
+    Instantiator {
+        model: root.supported ? (root.snapshot.files || []) : []
+        delegate: FileView {
+            required property string modelData
+            path: modelData
+            watchChanges: true
+            printErrors: false
+            onFileChanged: root.handleWatchedFileChanged()
+        }
     }
 }

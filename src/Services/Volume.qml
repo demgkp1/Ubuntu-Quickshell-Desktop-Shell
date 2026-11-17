@@ -23,15 +23,13 @@ Singleton {
 
     readonly property bool isHeadphone: root.sink ? root.nodeIconName(root.sink) === "headphones" : false
     readonly property bool sinkMuted: (root.sink && root.sink.audio) ? root.nodeMuted(root.sink) : fallbackSinkMuted
-    readonly property real sinkVolume: (root.sink && root.sink.audio) ? root.nodeVolume(root.sink) : fallbackSinkVolume
+    readonly property real sinkVolume: (root.sink && root.sink.audio) ? root.nodeVolume(root.sink) : 0
     readonly property bool sourceMuted: (root.source && root.source.audio) ? root.nodeMuted(root.source) : fallbackSourceMuted
-    readonly property real sourceVolume: (root.source && root.source.audio) ? root.nodeVolume(root.source) : fallbackSourceVolume
-    readonly property string sinkName: root.sink ? root.nodeDisplayName(root.sink) : "Built-in Audio"
-    readonly property string sourceName: root.source ? root.nodeDisplayName(root.source) : "Internal Microphone"
+    readonly property real sourceVolume: (root.source && root.source.audio) ? root.nodeVolume(root.source) : 0
+    readonly property string sinkName: root.sink ? root.nodeDisplayName(root.sink) : qsTr("Audio output unavailable")
+    readonly property string sourceName: root.source ? root.nodeDisplayName(root.source) : qsTr("Audio input unavailable")
 
-    property real fallbackSinkVolume: 0.35
     property bool fallbackSinkMuted: false
-    property real fallbackSourceVolume: 1.0
     property bool fallbackSourceMuted: false
 
     property string lastError: ""
@@ -260,29 +258,25 @@ Singleton {
     function toggleSinkMute() {
         if (root.sink && root.sink.audio)
             return root.toggleNodeMute(root.sink);
-        fallbackSinkMuted = !fallbackSinkMuted;
-        return true;
+        return root.fail("mute-output", qsTr("PipeWire output unavailable"));
     }
 
     function setSinkVolume(volume) {
         if (root.sink && root.sink.audio)
             return root.setNodeVolume(root.sink, volume);
-        fallbackSinkVolume = Math.max(0, Math.min(1, Number(volume)));
-        return true;
+        return root.fail("volume-output", qsTr("PipeWire output unavailable"));
     }
 
     function toggleSourceMute() {
         if (root.source && root.source.audio)
             return root.toggleNodeMute(root.source);
-        fallbackSourceMuted = !fallbackSourceMuted;
-        return true;
+        return root.fail("mute-input", qsTr("PipeWire input unavailable"));
     }
 
     function setSourceVolume(volume) {
         if (root.source && root.source.audio)
             return root.setNodeVolume(root.source, volume);
-        fallbackSourceVolume = Math.max(0, Math.min(1, Number(volume)));
-        return true;
+        return root.fail("volume-input", qsTr("PipeWire input unavailable"));
     }
 
     function openMixer() {

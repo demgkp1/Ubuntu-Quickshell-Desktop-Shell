@@ -25,33 +25,52 @@ import qs.Widgets.common
 ShellRoot {
     id: shellRoot
 
-    Scope {
-        id: lifecycleManager
-
-        Component.onCompleted: {
-            Qt.callLater(() => {
-                const firstBar = barVariants && barVariants.instances.length > 0 ? barVariants.instances[0] : null;
-                console.warn("================ M4 DUAL HOST WINDOW VALIDATION ================");
-                console.warn("[M4 TopBar Host] width: " + (firstBar ? firstBar.width : 0) + ", height: " + (firstBar ? firstBar.height : 0));
-                console.warn("[M4 TopBar Host] screen: " + (firstBar && firstBar.screen ? firstBar.screen.name : "none"));
-                console.warn("[M4 Sidebar Host] width: " + (sidebarHost ? sidebarHost.width : 0) + ", height: " + (sidebarHost ? sidebarHost.height : 0));
-                console.warn("[M4 Sidebar Host] screen: " + (sidebarHost && sidebarHost.screen ? sidebarHost.screen.name : "none"));
-                console.warn("[M4 Initial State] quickSettingsOpen: " + WidgetState.quickSettingsOpen);
-                console.warn("================================================================");
+    IpcHandler {
+        target: "diagnostics"
+        function snapshot(): string {
+            const panels = [];
+            for (const variants of [barVariants, verticalBarVariants]) {
+                for (let index = 0; index < variants.instances.length; ++index)
+                    panels.push(variants.instances[index].placementSnapshot());
+            }
+            return JSON.stringify({
+                backend: CompositorBackend.name, state: CompositorBackend.state,
+                windows: CompositorBackend.windows.length,
+                workspaces: CompositorBackend.workspaces.length,
+                blur: BlurService.enabled, locked: sessionLocker.active,
+                bars: barVariants.instances.length + verticalBarVariants.instances.length,
+                panels: panels.concat(keystone.placementSnapshots(), dockHost.placementSnapshots(), [sidebarHost.placementSnapshot()]),
+                quickSettings: WidgetState.quickSettingsOpen,
+                dashboard: WidgetState.dashboardSidebarOpen,
+                sidebarPresented: sidebarHost.isPresented,
+                quickSettingsPresented: sidebarHost.quickSettingsPresented,
+                dashboardPresented: sidebarHost.dashboardPresented,
+                sidebarWidth: sidebarHost.width, sidebarHeight: sidebarHost.height,
+                controlCenter: !!ControlCenterService.controlCenterWindow && ControlCenterService.controlCenterWindow.visible,
+                wallpaperOwner: WallpaperService.renderOwner
             });
         }
-
-
     }
 
     // Track A: Per-screen horizontal top bar variants
     Variants {
         id: barVariants
-        model: Quickshell.screens
+        model: ["top", "bottom"].includes(PersonalizationConfig.barPosition) ? Quickshell.screens : []
 
         HorizontalBarWindow {
             required property var modelData
             screen: modelData
+            edge: PersonalizationConfig.barPosition
+        }
+    }
+
+    Variants {
+        id: verticalBarVariants
+        model: ["left", "right"].includes(PersonalizationConfig.barPosition) ? Quickshell.screens : []
+        VerticalBarWindow {
+            required property var modelData
+            screen: modelData
+            edge: PersonalizationConfig.barPosition
         }
     }
 
@@ -174,6 +193,11 @@ ShellRoot {
             return "OPEN";
         }
 
+        function section(page: string, section: string): bool {
+            const window = ControlCenterService.controlCenterWindow;
+            return !!window && window.openPageSection(page, section);
+        }
+
         function openSearch(targetId: string): string {
             ControlCenterService.openSearch(targetId || "");
             return "SEARCH";
@@ -209,7 +233,10 @@ ShellRoot {
                 sessionLocker.open();
                 break;
             case "logout":
-                Quickshell.execDetached(["gnome-session-quit", "--logout", "--no-prompt"]);
+                if (CompositorBackend.name === "niri")
+                    Quickshell.execDetached(["niri", "msg", "action", "quit", "--skip-confirmation"]);
+                else
+                    Quickshell.execDetached(["gnome-session-quit", "--logout", "--no-prompt"]);
                 break;
             case "suspend":
                 Quickshell.execDetached(["systemctl", "suspend"]);
@@ -316,7 +343,12 @@ ShellRoot {
                 return;
 
             if (action === "overview") {
-                Quickshell.execDetached(["gdbus", "call", "--session", "--dest", "org.gnome.Shell", "--object-path", "/org/gnome/Shell", "--method", "org.freedesktop.DBus.Properties.Set", "org.gnome.Shell", "OverviewActive", "<true>"]);
+                if (CompositorBackend.name === "niri") {
+                    WidgetState.closeAllPopups();
+                    Niri.toggleOverview();
+                } else {
+                    Quickshell.execDetached(["gdbus", "call", "--session", "--dest", "org.gnome.Shell", "--object-path", "/org/gnome/Shell", "--method", "org.freedesktop.DBus.Properties.Set", "org.gnome.Shell", "OverviewActive", "<true>"]);
+                }
                 return;
             }
 
@@ -324,6 +356,8 @@ ShellRoot {
                 const parts = action.split(":");
                 const role = parts[0];
                 const view = parts[1];
+                if (CompositorBackend.name === "niri" && Niri.inOverview)
+                    Niri.toggleOverview();
                 const targetScreen = screenName || (Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0].name : "");
                 sidebarHost.openOnScreen(role, view, targetScreen);
                 return;

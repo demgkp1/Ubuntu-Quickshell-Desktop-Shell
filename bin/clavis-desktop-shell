@@ -1,47 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-# Determine repository root
-SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
-SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-
-# Ensure Nix profile is available
-if [ -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]; then
-    . "$HOME/.nix-profile/etc/profile.d/nix.sh"
-elif [ -f "/nix/var/nix/profiles/default/etc/profile.d/nix.sh" ]; then
-    . "/nix/var/nix/profiles/default/etc/profile.d/nix.sh"
-fi
-
-# Ensure graphical environment variables are present
-export DISPLAY="${DISPLAY:-:0}"
-if [ -z "${XAUTHORITY:-}" ] && [ -f "$HOME/.Xauthority" ]; then
-    export XAUTHORITY="$HOME/.Xauthority"
-fi
-
-
-
-# Ubuntu GNOME 46 Mutter environment: Run via XWayland bridge (xcb)
-# to obtain EWMH _NET_WM_STRUT_PARTIAL exclusive docking and native window tracking.
-export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-xcb}"
-export XCURSOR_THEME="${XCURSOR_THEME:-Yaru}"
-export XCURSOR_SIZE="${XCURSOR_SIZE:-24}"
-export XCURSOR_PATH="${XCURSOR_PATH:-/usr/share/icons:$HOME/.icons}"
-export QML2_IMPORT_PATH="$PROJECT_DIR/imports:${QML2_IMPORT_PATH:-}"
-export GIO_EXTRA_MODULES="/usr/lib/x86_64-linux-gnu/gio/modules:${GIO_EXTRA_MODULES:-}"
-
-# GNOME TopBar, Native Dock, and Notification banner management
-cleanup() {
-    gnome-extensions disable "hidetopbar@mathieu.bidon.ca" 2>/dev/null || true
-    gnome-extensions enable "ubuntu-dock@ubuntu.com" 2>/dev/null || true
-    gsettings set org.gnome.desktop.notifications show-banners true 2>/dev/null || true
-}
-trap cleanup EXIT INT TERM
-
-gnome-extensions enable "hidetopbar@mathieu.bidon.ca" 2>/dev/null || true
-gnome-extensions disable "ubuntu-dock@ubuntu.com" 2>/dev/null || true
-gnome-extensions disable "dash-to-dock@micxgx.gmail.com" 2>/dev/null || true
-gsettings set org.gnome.desktop.notifications show-banners false 2>/dev/null || true
-
-cd "$PROJECT_DIR"
-exec nix develop "$PROJECT_DIR" --command quickshell -p "$PROJECT_DIR/src/shell.qml" "$@"
+ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+exec "$ROOT/scripts/launch.sh" "$@"

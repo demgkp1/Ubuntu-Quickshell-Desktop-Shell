@@ -62,9 +62,9 @@ WidgetPanel {
         Layout.topMargin: sidebarScroll.gapFor(0, 1)
 
         Layout.fillWidth: true
-        visible: IdleService.lastError.length > 0
+        visible: true
         tone: "error"
-        message: IdleService.lastError
+        message: IdleService.lastError || qsTr("GNOME Settings → Power owns automatic dimming and locking. Only Keep awake is controlled here.")
     }
 
         SettingsSection {
@@ -79,7 +79,7 @@ WidgetPanel {
         title: qsTr("Keep awake")
         trailing: StyledSwitch {
         checked: IdleService.inhibited
-        enabled: !IdleService.busy
+        enabled: IdleService.policyReady && !IdleService.busy
         Accessible.name: qsTr("Keep awake")
         onToggled: IdleService.setInhibited(checked)
     }
@@ -91,7 +91,7 @@ WidgetPanel {
         title: qsTr("Automatic idle")
         trailing: StyledSwitch {
         checked: IdleService.policyEnabled
-        enabled: IdleService.policyReady
+        enabled: IdleService.supportsCustomStages
         Accessible.name: qsTr("Automatic idle")
         onToggled: IdleService.setPolicyEnabled(checked)
     }
@@ -136,6 +136,7 @@ WidgetPanel {
 
         component StageEditor: SettingsSection {
         id: stageEditor
+        enabled: IdleService.supportsCustomStages
         pullExpansion: sidebarScroll.detailExpansion
 
         required property string stageName
@@ -156,7 +157,7 @@ WidgetPanel {
         supportingText: stageEditor.stageActive ? qsTr("Triggered") : ""
         trailing: StyledSwitch {
         checked: stageEditor.stageEnabled
-        enabled: IdleService.policyReady
+        enabled: IdleService.supportsCustomStages
         Accessible.name: stageEditor.stageTitle
         onToggled: IdleService.configureStage(stageEditor.stageName, checked, stageEditor.stageTimeout,
         stageEditor.respectInhibitors)
@@ -175,7 +176,7 @@ WidgetPanel {
         maxVisibleItems: 8
         popupBoundsItem: panelRoot
         closeOnAccept: true
-        enabled: IdleService.policyReady
+        enabled: IdleService.supportsCustomStages
         Accessible.name: qsTr("%1 wait time").arg(stageEditor.stageTitle)
         onAccepted: value => IdleService.configureStage(stageEditor.stageName, stageEditor.stageEnabled,
         Number(value), stageEditor.respectInhibitors)
@@ -197,7 +198,7 @@ WidgetPanel {
         MaterialSplitSlider {
         id: dimFractionSlider
         Layout.fillWidth: true
-        enabled: IdleService.policyReady
+        enabled: IdleService.supportsCustomStages
         configuration: MaterialSplitSlider.Configuration.M
         from: 0.1
         to: 0.8
@@ -226,7 +227,7 @@ WidgetPanel {
         title: qsTr("Skip while keeping awake")
         trailing: StyledSwitch {
         checked: stageEditor.respectInhibitors
-        enabled: IdleService.policyReady
+        enabled: IdleService.supportsCustomStages
         Accessible.name: qsTr("%1: respect keep-awake").arg(stageEditor.stageTitle)
         onToggled: IdleService.configureStage(stageEditor.stageName, stageEditor.stageEnabled,
         stageEditor.stageTimeout, checked)

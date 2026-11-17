@@ -3,22 +3,12 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Clavis.Runtime
 import qs.Common
 import qs.Services
 
 Singleton {
     id: root
-
-    QtObject {
-        id: iconThemeController
-        property string systemThemeName: "Yaru"
-        property int revision: 0
-        function setThemeName(name) {
-            systemThemeName = name || "Yaru";
-            revision++;
-            Quickshell.execDetached(["gsettings", "set", "org.gnome.desktop.interface", "icon-theme", systemThemeName]);
-        }
-    }
 
     property string generationError: ""
     property string externalGenerationError: ""
@@ -40,8 +30,8 @@ Singleton {
                                               "label": qsTr("System default"),
                                               "value": ""
                                           })]
-    readonly property string systemDefaultIconTheme: iconThemeController.systemThemeName
-    readonly property int iconThemeRevision: iconThemeController.revision
+    readonly property string systemDefaultIconTheme: IconThemeController.systemThemeName
+    readonly property int iconThemeRevision: IconThemeController.revision
     property string systemDefaultCursorTheme: ""
 
     readonly property bool isNiriSession: NiriConfigService.supported
@@ -102,7 +92,7 @@ Singleton {
 
     function applyIconTheme() {
         if (PersonalizationConfig.ready)
-            iconThemeController.setThemeName(PersonalizationConfig.iconTheme);
+            IconThemeController.setThemeName(PersonalizationConfig.iconTheme);
     }
 
     function effectiveCursorTheme() {

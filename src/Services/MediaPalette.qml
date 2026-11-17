@@ -2,17 +2,20 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import Clavis.Media
 import qs.Common
 
 Singleton {
     id: root
 
-    property color primary: Appearance.colors.colPrimary
-    property color onPrimary: Appearance.colors.colOnPrimary
-    property color track: Appearance.colors.colSecondaryContainer
+    readonly property bool available: MediaPalettePlugin.available
+    readonly property string errorString: MediaPalettePlugin.errorString
+    readonly property color primary: MediaPalettePlugin.primary
+    readonly property color onPrimary: MediaPalettePlugin.onPrimary
+    readonly property color track: MediaPalettePlugin.track
 
     function extract(artUrl, fallback) {
         const safeFallback = fallback === undefined || fallback === null ? Appearance.colors.colPrimary : fallback;
-        root.primary = safeFallback;
+        MediaPalettePlugin.extract(artUrl || "", safeFallback);
     }
 }

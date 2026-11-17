@@ -9,9 +9,15 @@ import qs.Services
 Singleton {
     id: root
 
-    property string currentWallpaper: "/usr/share/backgrounds/ubuntu-wallpaper-d.png"
+    readonly property string currentWallpaper: root.normalizedPath(GnomeSession.desktop.wallpaper || "")
     property var wallpapers: [currentWallpaper]
     property bool busy: false
+    property int wallpaperRequest: -1
+    readonly property bool available: !!GnomeSession.desktop.wallpaperAvailable
+    readonly property bool supportsTransitions: false
+    readonly property bool supportsPerOutput: false
+    readonly property bool supportsOverviewWallpaper: false
+    readonly property string renderOwner: "GNOME Shell"
     property int revision: 0
     property int settingsRevision: 0
     property bool switching: false
@@ -21,7 +27,7 @@ Singleton {
     property bool canUseAwww: false
     property string lastDesktopError: ""
     property string lastOverviewError: ""
-    property string desktopWallpaperBackend: "gnome"
+    readonly property string desktopWallpaperBackend: "gnome"
     property string wallpaperTransitionType: "fade"
     property int transitionDurationMs: 300
     property string transitionBezierCurve: "easeInOutQuad"
@@ -38,7 +44,10 @@ Singleton {
     }
 
     function normalizedPath(path) {
-        return String(path || "").replace(/^file:\/\//, "");
+        const value = String(path || "");
+        if (!value.startsWith("file://")) return value;
+        try { return decodeURIComponent(value.slice(7)); }
+        catch (error) { return value.slice(7); }
     }
 
     function parentFolder(path) {
@@ -54,82 +63,51 @@ Singleton {
     }
 
     function setCurrentWallpaper(path) {
-        if (!path)
-            return;
-        const cleanPath = root.normalizedPath(path);
-        root.currentWallpaper = cleanPath;
-        root.revision += 1;
-
-        // Persist to PersonalizationConfig
-        PersonalizationConfig.setWallpaperPath(cleanPath);
-
-        // Write to GNOME desktop background (Mutter X11)
-        const fileUri = "file://" + cleanPath;
-        Quickshell.execDetached(["gsettings", "set", "org.gnome.desktop.background", "picture-uri", fileUri]);
-        Quickshell.execDetached(["gsettings", "set", "org.gnome.desktop.background", "picture-uri-dark", fileUri]);
-        Quickshell.execDetached(["gsettings", "set", "org.gnome.desktop.background", "picture-options", "zoom"]);
-
-        ThemeService.generateFromWallpaper(cleanPath);
+        if (!root.available || !path || root.busy) return false;
+        root.wallpaperRequest = GnomeSession.request("wallpaper", {path: root.normalizedPath(path)});
+        root.busy = root.wallpaperRequest > 0;
+        return root.busy;
     }
 
     function setWallpaper(path) {
-        root.setCurrentWallpaper(path);
-        return true;
+        return root.setCurrentWallpaper(path);
     }
 
     function setWallpaperFromFile(path, output) {
-        root.setCurrentWallpaper(path);
-        return true;
+        if (output) return root.unsupported(qsTr("GNOME uses one wallpaper selection for all outputs"));
+        return root.setCurrentWallpaper(path);
     }
 
     function setOverviewWallpaper(path, output) {
-        root.setCurrentWallpaper(path);
-        return true;
+        return root.unsupported(qsTr("GNOME owns the overview wallpaper"));
     }
 
     function clearOverviewWallpaper(output) {
-        root.clearWallpaper(output);
+        return root.unsupported(qsTr("GNOME owns the overview wallpaper"));
     }
 
     function refreshOverviewBackdropRule() {
-        root.revision += 1;
-        return true;
+        return root.available;
     }
 
     function setDesktopWallpaperBackend(val) {
-        if (!val || root.desktopWallpaperBackend === val)
-            return;
-        root.desktopWallpaperBackend = String(val);
-        root.settingsRevision += 1;
+        return root.unsupported(qsTr("GNOME owns desktop rendering; Clavis custom transitions, easing and per-output overview settings are unavailable"));
     }
 
     function setWallpaperTransitionType(type) {
-        if (!type || root.wallpaperTransitionType === type)
-            return;
-        root.wallpaperTransitionType = String(type);
-        root.settingsRevision += 1;
+        return root.unsupported(qsTr("GNOME owns desktop rendering; Clavis custom transitions, easing and per-output overview settings are unavailable"));
     }
 
     function setTransitionDurationMs(ms) {
-        const val = Number(ms);
-        if (!isFinite(val) || val < 0)
-            return;
-        root.transitionDurationMs = val;
-        root.settingsRevision += 1;
+        return root.unsupported(qsTr("GNOME owns desktop rendering; Clavis custom transitions, easing and per-output overview settings are unavailable"));
     }
 
     function setTransitionBezierCurve(curve) {
-        if (!curve)
-            return;
-        root.transitionBezierCurve = String(curve);
-        root.settingsRevision += 1;
+        return root.unsupported(qsTr("GNOME owns desktop rendering; Clavis custom transitions, easing and per-output overview settings are unavailable"));
     }
 
     function setTransitionEasingMode(mode) {
-        if (!mode)
-            return;
-        root.transitionEasingMode = String(mode);
-        root.settingsRevision += 1;
+        return root.unsupported(qsTr("GNOME owns desktop rendering; Clavis custom transitions, easing and per-output overview settings are unavailable"));
     }
 
     function setWallpaperFolder(path) {
@@ -141,12 +119,7 @@ Singleton {
     }
 
     function setOverviewFillModeForScreen(screen, mode) {
-        if (!screen || !mode)
-            return;
-        const copy = Object.assign({}, root.overviewFillModes);
-        copy[screen] = String(mode);
-        root.overviewFillModes = copy;
-        root.settingsRevision += 1;
+        return root.unsupported(qsTr("GNOME owns desktop rendering; Clavis custom transitions, easing and per-output overview settings are unavailable"));
     }
 
     function basename(path) {
@@ -178,7 +151,8 @@ Singleton {
     }
 
     function fillModeForScreen(screenName) {
-        return "AspectCrop";
+        const modes = {zoom: "AspectCrop", scaled: "Fit", stretched: "Stretch", wallpaper: "Tile", centered: "Pad", spanned: "panorama"};
+        return modes[GnomeSession.desktop.fill] || "AspectCrop";
     }
 
     function qtFillMode(modeName) {
@@ -228,30 +202,13 @@ Singleton {
     }
 
     function refresh() {
-        gsettingsDarkProc.running = true;
-    }
-
-    Process {
-        id: gsettingsDarkProc
-        command: ["gsettings", "get", "org.gnome.desktop.background", "picture-uri-dark"]
-        running: true
-
-        stdout: StdioCollector {
-            onTextChanged: {
-                let out = text.trim();
-                out = out.replace(/^'file:\/\//, "").replace(/'$/, "").replace(/^'/, "");
-                if (out && out.length > 0 && out !== root.currentWallpaper) {
-                    root.currentWallpaper = out;
-                    root.revision += 1;
-                    ThemeService.generateFromWallpaper(out);
-                }
-            }
-        }
+        return GnomeSession.helperRunning;
     }
 
     function setWallpaperFillModeForScreen(screenName, mode) {
-        root.revision += 1;
-        return true;
+        const modes = {AspectCrop: "zoom", Fill: "zoom", PreserveAspectCrop: "zoom", Fit: "scaled", PreserveAspectFit: "scaled", Stretch: "stretched", Tile: "wallpaper", Pad: "centered", panorama: "spanned"};
+        if (!modes[mode] || !available) return root.unsupported(qsTr("Unsupported GNOME wallpaper fill mode"));
+        return GnomeSession.request("fill", {mode: modes[mode]}) > 0;
     }
 
     function scan() {
@@ -275,20 +232,19 @@ Singleton {
         } else {
             nextIndex = index >= 0 ? (index + 1) % root.wallpapers.length : 0;
         }
-        root.setCurrentWallpaper(root.wallpapers[nextIndex]);
-        return true;
+        return root.setCurrentWallpaper(root.wallpapers[nextIndex]);
     }
 
     function cycleNext() { return root.applyCycle("next"); }
     function cyclePrevious() { return root.applyCycle("previous"); }
     function cycleRandom() { return root.applyCycle("random"); }
     function clearWallpaper(screenName) {
-        root.setCurrentWallpaper("/usr/share/backgrounds/ubuntu-wallpaper-d.png");
+        return root.unsupported(qsTr("Select a wallpaper file or use GNOME Settings; no assumed default file is applied"));
     }
 
     Process {
         id: scanProc
-        command: ["find", "/usr/share/backgrounds", "-type", "f", "(", "-name", "*.png", "-o", "-name", "*.jpg", "-o", "-name", "*.webp", ")"]
+        command: ["find", root.wallpaperFolder, "-maxdepth", "4", "-type", "f", "(", "-name", "*.png", "-o", "-name", "*.jpg", "-o", "-name", "*.webp", ")"]
         running: true
         stdout: StdioCollector {
             onTextChanged: {
@@ -299,7 +255,26 @@ Singleton {
         }
     }
 
-    Component.onCompleted: {
-        ThemeService.generateFromWallpaper(root.currentWallpaper);
+    function unsupported(message) {
+        root.lastDesktopError = message;
+        return root.supportsTransitions;
+    }
+    Connections {
+        target: GnomeSession
+        function onOperationFinished(id, accepted, error) {
+            if (id !== root.wallpaperRequest) return;
+            root.busy = false;
+            root.lastDesktopError = accepted ? "" : error;
+        }
+        function onDesktopChanged() {
+            if (!root.available) root.busy = false;
+        }
+    }
+    onCurrentWallpaperChanged: {
+        root.revision++;
+        if (root.currentWallpaper) {
+            PersonalizationConfig.setWallpaperPath(root.currentWallpaper);
+            ThemeService.generateFromWallpaper(root.currentWallpaper);
+        }
     }
 }

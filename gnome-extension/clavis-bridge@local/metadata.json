@@ -1,0 +1,7 @@
+{
+  "uuid": "clavis-bridge@local",
+  "name": "Clavis GNOME Bridge",
+  "description": "Explicit window/workspace bridge for Clavis. Does not replace Mutter, notifications, shortcuts or the lock screen.",
+  "shell-version": ["50"],
+  "version": 1
+}

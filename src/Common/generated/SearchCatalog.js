@@ -810,7 +810,13 @@ var catalog = {
       "title": "Spotlight"
     },
     {
-      "aliases": [],
+      "aliases": [
+        "window opacity",
+        "window transparency",
+        "windowOpacityEnabled",
+        "activeWindowOpacity",
+        "inactiveWindowOpacity"
+      ],
       "anchor": false,
       "context": "GeneralPage",
       "icon": "blur_on",
@@ -1408,6 +1414,79 @@ var catalog = {
       "title": "Background"
     },
     {
+      "aliases": [
+        "window opacity",
+        "windowOpacityEnabled",
+        "activeWindowOpacity",
+        "inactiveWindowOpacity"
+      ],
+      "anchor": true,
+      "context": "GeneralEffectsPage",
+      "icon": "opacity",
+      "id": "general.effects.section.window-transparency",
+      "path": [
+        "general",
+        "effects"
+      ],
+      "route": "general.effects",
+      "source": "GeneralEffectsPage.qml",
+      "title": "Window transparency"
+    },
+    {
+      "aliases": [
+        "windowOpacityEnabled",
+        "window opacity",
+        "window transparency"
+      ],
+      "anchor": true,
+      "context": "GeneralEffectsPage",
+      "icon": "opacity",
+      "id": "general.effects.window-opacity-enabled",
+      "path": [
+        "general",
+        "effects"
+      ],
+      "route": "general.effects",
+      "source": "GeneralEffectsPage.qml",
+      "title": "Enable window transparency"
+    },
+    {
+      "aliases": [
+        "activeWindowOpacity",
+        "active window opacity",
+        "focused window opacity"
+      ],
+      "anchor": true,
+      "context": "GeneralEffectsPage",
+      "icon": "opacity",
+      "id": "general.effects.active-window-opacity",
+      "path": [
+        "general",
+        "effects"
+      ],
+      "route": "general.effects",
+      "source": "GeneralEffectsPage.qml",
+      "title": "Focused window opacity"
+    },
+    {
+      "aliases": [
+        "inactiveWindowOpacity",
+        "inactive window opacity",
+        "unfocused window opacity"
+      ],
+      "anchor": true,
+      "context": "GeneralEffectsPage",
+      "icon": "opacity",
+      "id": "general.effects.inactive-window-opacity",
+      "path": [
+        "general",
+        "effects"
+      ],
+      "route": "general.effects",
+      "source": "GeneralEffectsPage.qml",
+      "title": "Unfocused window opacity"
+    },
+    {
       "aliases": [],
       "anchor": true,
       "context": "GeneralOverviewPage",
@@ -1976,6 +2055,10 @@ function title(id) {
     case "general.bar.section.position": return tr("GeneralBarPage", "Position");
     case "general.bar.section.components": return tr("GeneralBarPage", "Components");
     case "general.effects.section.background": return tr("GeneralEffectsPage", "Background");
+    case "general.effects.section.window-transparency": return tr("GeneralEffectsPage", "Window transparency");
+    case "general.effects.window-opacity-enabled": return tr("GeneralEffectsPage", "Enable window transparency");
+    case "general.effects.active-window-opacity": return tr("GeneralEffectsPage", "Focused window opacity");
+    case "general.effects.inactive-window-opacity": return tr("GeneralEffectsPage", "Unfocused window opacity");
     case "general.section.interface": return tr("GeneralOverviewPage", "Interface");
     case "general.section.system": return tr("GeneralOverviewPage", "System");
     case "general.section.applications": return tr("GeneralOverviewPage", "Applications");

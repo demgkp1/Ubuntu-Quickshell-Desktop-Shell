@@ -46,36 +46,12 @@ Rectangle {
         QuickMaterialSlider {
             Accessible.name: qsTr("Brightness")
             materialSymbol: "light_mode"
-            secondaryMaterialSymbol: "wb_twilight"
-            secondaryIconLocation: root.gammaCutoff
-            stopIndicatorValues: (DisplayColor.dimming * 100) !== 100 && root.brightnessValue > 0 ? [root.gammaCutoff
-                                                                                                     + root.brightnessValue
-                                                                                                     * (1 - root.gammaCutoff)] :
-                                                                                                    []
-            value: (DisplayColor.dimming * 100) === 100 ? root.gammaCutoff + root.brightnessValue * (1
-                                                                                                     - root.gammaCutoff) :
-                                                          ((DisplayColor.dimming * 100) - (
-                                                               DisplayColor.dimmingLowerLimit * 100)) / (100
-                                                                                                         - (DisplayColor.dimmingLowerLimit
-                                                                                                            * 100)) * root.gammaCutoff
-            percentText: (DisplayColor.dimming * 100) === 100 ? `${Math.round(root.brightnessValue * 100)}%` :
-                                                                `${Math.round(DisplayColor.dimming * 100)}%`
-            tooltipContent: (DisplayColor.dimming * 100) === 100 ? `${Math.round(root.brightnessValue * 100)}%` :
-                                                                   qsTr("Software dimming: %1%").arg(
-                                                                       Math.round(DisplayColor.dimming * 100))
-            onMoved: {
-                if (value >= root.gammaCutoff) {
-                    Brightness.setBrightnessForScreen(root.screen, (value - root.gammaCutoff) / (1
-                                                                                                 - root.gammaCutoff));
-                    if ((DisplayColor.dimming * 100) !== 100)
-                        DisplayColor.setDimming(1);
-                } else {
-                    if (root.brightnessValue > 0)
-                        Brightness.setBrightnessForScreen(root.screen, 0, true);
-                    DisplayColor.setDimming(value / root.gammaCutoff * (1 - DisplayColor.dimmingLowerLimit)
-                                            + DisplayColor.dimmingLowerLimit);
-                }
-            }
+            enabled: Brightness.available
+            value: root.brightnessValue
+            percentText: Brightness.available ? Math.round(value * 100) + "%" : qsTr("Unavailable")
+            tooltipContent: Brightness.available ? percentText : qsTr("No hardware backlight; GNOME software dimming is unavailable")
+            onMoved: Brightness.setBrightnessForScreen(root.screen, value)
+
         }
 
         SliderHeading {
@@ -90,7 +66,7 @@ Rectangle {
             enabled: Volume.outputAvailable
             materialSymbol: Volume.sinkMuted ? "volume_off" : "volume_up"
             value: Volume.sinkVolume
-            percentText: Volume.sinkMuted ? qsTr("Muted") : Math.round(value * 100) + "%"
+            percentText: !Volume.outputAvailable ? qsTr("Unavailable") : Volume.sinkMuted ? qsTr("Muted") : Math.round(value * 100) + "%"
             onMoved: Volume.setSinkVolume(value)
         }
 
@@ -106,8 +82,65 @@ Rectangle {
             enabled: Volume.inputAvailable
             materialSymbol: Volume.sourceMuted ? "mic_off" : "mic"
             value: Volume.sourceVolume
-            percentText: Volume.sourceMuted ? qsTr("Muted") : Math.round(value * 100) + "%"
+            percentText: !Volume.inputAvailable ? qsTr("Unavailable") : Volume.sourceMuted ? qsTr("Muted") : Math.round(value * 100) + "%"
             onMoved: Volume.setSourceVolume(value)
+        }
+
+        SliderHeading {
+            visible: root.detailed && CompositorBackend.supportsWindowOpacity
+            Layout.topMargin: (root.detailed ? Metrics.spacingS : 0) + root.pullExpansion * 1.5
+            title: qsTr("Window opacity")
+            detail: PersonalizationConfig.windowOpacityEnabled
+                ? qsTr("Focused %1% · Unfocused %2%")
+                    .arg(Math.round(PersonalizationConfig.activeWindowOpacity * 100))
+                    .arg(Math.round(PersonalizationConfig.inactiveWindowOpacity * 100))
+                : qsTr("Off")
+        }
+
+        QuickMaterialSlider {
+            id: windowOpacitySlider
+
+            readonly property bool opacityActive: PersonalizationConfig.windowOpacityEnabled
+
+            visible: CompositorBackend.supportsWindowOpacity
+            enabled: CompositorBackend.supportsWindowOpacity
+            Accessible.name: qsTr("Window opacity")
+            materialSymbol: opacityActive ? "opacity" : "layers_clear"
+            animateWave: false
+            from: 0.2
+            to: 1.0
+            stepSize: 0.01
+            value: PersonalizationConfig.activeWindowOpacity
+            percentText: opacityActive ? Math.round(value * 100) + "%" : qsTr("Off")
+            tooltipContent: opacityActive
+                ? Math.round(value * 100) + "%"
+                : qsTr("Window transparency off (click icon to enable)")
+            highlightColor: opacityActive ? Appearance.colors.colPrimary : Appearance.colors.colOutline
+            handleColor: opacityActive ? Appearance.colors.colPrimary : Appearance.colors.colOutline
+            onMoved: PersonalizationConfig.setActiveWindowOpacity(value)
+
+            MouseArea {
+                id: opacityIconToggleArea
+
+                x: Math.max(0, (windowOpacitySlider.value >= 0.9 && windowOpacitySlider.handle
+                    ? (windowOpacitySlider.handle.x + windowOpacitySlider.handle.width - 14)
+                    : (windowOpacitySlider.width - 8)) - 26)
+                y: 0
+                width: 32
+                height: parent.height
+                z: 2
+                enabled: windowOpacitySlider.enabled
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: PersonalizationConfig.setWindowOpacityEnabled(!PersonalizationConfig.windowOpacityEnabled)
+
+                StyledToolTip {
+                    extraVisibleCondition: opacityIconToggleArea.containsMouse
+                    text: windowOpacitySlider.opacityActive
+                        ? qsTr("Disable window transparency")
+                        : qsTr("Enable window transparency")
+                }
+            }
         }
     }
 

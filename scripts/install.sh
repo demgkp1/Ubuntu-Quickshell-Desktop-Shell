@@ -58,12 +58,11 @@ After=graphical-session.target gnome-session.target
 
 [Service]
 Type=simple
-Environment="DISPLAY=:0"
 Environment="QT_QPA_PLATFORM=xcb"
 ExecStart="$PROJECT_DIR/bin/clavis-desktop-shell"
 Restart=on-failure
 RestartSec=2
-KillMode=mixed
+KillMode=control-group
 TimeoutStopSec=5
 
 [Install]

@@ -34,10 +34,7 @@ echo "  ✓ Removed symlinks from ~/.local/bin"
 
 # 4. Clean up processes and restore GNOME native desktop
 echo "[4/4] Cleaning up running processes and restoring GNOME native desktop..."
-killall quickshell 2>/dev/null || true
-gnome-extensions disable "hidetopbar@mathieu.bidon.ca" 2>/dev/null || true
-gnome-extensions enable "ubuntu-dock@ubuntu.com" 2>/dev/null || true
-echo "  ✓ Restored GNOME topbar and native dock."
+echo "  ✓ GNOME settings and unrelated processes were not changed."
 
 echo "=========================================================="
 echo "    Uninstallation Completed! System is restored clean.  "

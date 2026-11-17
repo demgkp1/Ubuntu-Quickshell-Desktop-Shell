@@ -10,6 +10,7 @@ WidgetPanel {
     id: root
 
     property var screen: null
+    property bool foreground: true
     title: qsTr("Quick Settings")
     icon: "settings"
 
@@ -66,7 +67,7 @@ WidgetPanel {
 
     function hasAltActionForType(type) {
         return type === "network" || type === "bluetooth" || type === "caffeine" || type === "audio" || type
-                === "mic" || type === "night";
+                === "mic" || type === "night" || type === "windowOpacity";
     }
 
     function titleForType(type) {
@@ -86,7 +87,9 @@ WidgetPanel {
         case "theme":
             return qsTr("Appearance");
         case "dnd":
-            return qsTr("Do not disturb");
+            return qsTr("Local notification quiet mode");
+        case "windowOpacity":
+            return qsTr("Window Opacity");
         default:
             return type;
         }
@@ -111,15 +114,23 @@ WidgetPanel {
             return BluetoothService.connected ? (BluetoothService.connectedName || qsTr("Connected")) : qsTr(
                                                     "On");
         case "caffeine":
-            return IdleService.inhibited ? qsTr("Keep awake") : qsTr("Normal sleep");
+            return !IdleService.policyReady ? qsTr("Unavailable") : IdleService.inhibited ? qsTr("Keep awake") : qsTr("Normal sleep");
         case "mic":
-            return Volume.sourceMuted ? qsTr("Muted") : qsTr("On");
+            return !Volume.inputAvailable ? qsTr("Unavailable") : Volume.sourceMuted ? qsTr("Muted") : qsTr("On");
         case "audio":
-            return Volume.sinkMuted ? qsTr("Muted") : Math.round(Volume.sinkVolume * 100) + "%";
+            return !Volume.outputAvailable ? qsTr("Unavailable") : Volume.sinkMuted ? qsTr("Muted") : Math.round(Volume.sinkVolume * 100) + "%";
         case "theme":
             return PersonalizationConfig.themeMode === "dark" ? qsTr("Dark") : qsTr("Light");
         case "dnd":
             return UiPreferences.dndEnabled ? qsTr("On") : qsTr("Off");
+        case "windowOpacity":
+            if (!CompositorBackend.supportsWindowOpacity)
+                return qsTr("Unavailable");
+            return PersonalizationConfig.windowOpacityEnabled
+                ? qsTr("Focused %1% · Unfocused %2%")
+                    .arg(Math.round(PersonalizationConfig.activeWindowOpacity * 100))
+                    .arg(Math.round(PersonalizationConfig.inactiveWindowOpacity * 100))
+                : qsTr("Off");
         default:
             return "";
         }
@@ -144,6 +155,10 @@ WidgetPanel {
             return PersonalizationConfig.themeMode === "dark" ? "dark_mode" : "light_mode";
         case "dnd":
             return UiPreferences.dndEnabled ? "notifications_paused" : "notifications";
+        case "windowOpacity":
+            return CompositorBackend.supportsWindowOpacity && PersonalizationConfig.windowOpacityEnabled
+                ? "opacity"
+                : "layers_clear";
         default:
             return "toggle_off";
         }
@@ -167,6 +182,8 @@ WidgetPanel {
             return PersonalizationConfig.themeMode === "dark";
         case "dnd":
             return UiPreferences.dndEnabled;
+        case "windowOpacity":
+            return CompositorBackend.supportsWindowOpacity && PersonalizationConfig.windowOpacityEnabled;
         default:
             return false;
         }
@@ -180,6 +197,10 @@ WidgetPanel {
             return NetworkService.available && NetworkService.wifiAvailable;
         case "bluetooth":
             return BluetoothService.available;
+        case "caffeine": return IdleService.policyReady;
+        case "mic": return Volume.inputAvailable;
+        case "audio": return Volume.outputAvailable;
+        case "windowOpacity": return CompositorBackend.supportsWindowOpacity;
         default:
             return true;
         }
@@ -211,6 +232,10 @@ WidgetPanel {
         case "dnd":
             UiPreferences.toggleDnd();
             break;
+        case "windowOpacity":
+            if (CompositorBackend.supportsWindowOpacity)
+                PersonalizationConfig.setWindowOpacityEnabled(!PersonalizationConfig.windowOpacityEnabled);
+            break;
         }
     }
 
@@ -228,6 +253,8 @@ WidgetPanel {
             view = "microphone";
         else if (type === "night")
             view = "night";
+        else if (type === "windowOpacity")
+            view = "window-opacity";
 
         if (view.length === 0)
             return;
@@ -300,6 +327,7 @@ WidgetPanel {
         id: sidebarScroll
         Layout.fillWidth: true
         Layout.fillHeight: true
+        motionEnabled: root.foreground && root.visible
         contentWidth: width
         contentHeight: pageContent.implicitHeight + sidebarScroll.contentTopInset
 
@@ -338,7 +366,7 @@ WidgetPanel {
                 }
 
                 Behavior on Layout.preferredHeight {
-                    enabled: sidebarScroll.pullOffset === 0
+                    enabled: root.foreground && root.visible && sidebarScroll.pullOffset === 0
                     NumberAnimation {
                         duration: Appearance.animation.expressiveDefaultSpatial.duration
                         easing.type: Appearance.animation.expressiveDefaultSpatial.type
@@ -439,9 +467,11 @@ WidgetPanel {
                 title: qsTr("Device settings")
 
                 Repeater {
-                    model: ["network", "bluetooth", "audio", "mic", "caffeine", "night"]
+                    model: ["network", "bluetooth", "audio", "mic", "caffeine", "night", "windowOpacity"]
 
                     SettingsRow {
+                        id: deviceRow
+
                         required property string modelData
                         Layout.fillWidth: true
                         Layout.minimumHeight: 64
@@ -462,16 +492,31 @@ WidgetPanel {
                                 return DisplayColor.preferences.nightEnabled ? qsTr("%1 K").arg(
                                                                                    DisplayColor.schedule.temperature) :
                                                                                "";
+                            case "windowOpacity":
+                                return root.subtitleForType("windowOpacity");
                             default:
                                 return "";
                             }
                         }
                         interactive: true
                         onClicked: root.altType(modelData)
-                        trailing: MaterialSymbol {
-                            text: "chevron_right"
-                            iconSize: Metrics.iconM
-                            color: Appearance.colors.colOnSurfaceVariant
+                        trailing: RowLayout {
+                            spacing: Metrics.spacingXS
+
+                            StyledSwitch {
+                                visible: deviceRow.modelData === "windowOpacity"
+                                enabled: visible && CompositorBackend.supportsWindowOpacity
+                                checked: visible && CompositorBackend.supportsWindowOpacity
+                                    && PersonalizationConfig.windowOpacityEnabled
+                                Accessible.name: root.titleForType("windowOpacity")
+                                onToggled: PersonalizationConfig.setWindowOpacityEnabled(checked)
+                            }
+
+                            MaterialSymbol {
+                                text: "chevron_right"
+                                iconSize: Metrics.iconM
+                                color: Appearance.colors.colOnSurfaceVariant
+                            }
                         }
                     }
                 }

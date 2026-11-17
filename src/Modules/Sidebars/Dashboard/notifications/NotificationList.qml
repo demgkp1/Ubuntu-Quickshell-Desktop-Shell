@@ -75,7 +75,7 @@ Rectangle {
 
             Text {
                 Layout.alignment: Qt.AlignHCenter
-                text: qsTr("No notifications")
+                text: NotificationManager.ownsSystemNotifications ? qsTr("No notifications") : qsTr("GNOME notifications are not imported")
                 font.family: Fonts.ui
                 font.pixelSize: 14
                 font.weight: Font.Medium
@@ -102,7 +102,7 @@ Rectangle {
         NotificationStatusButton {
             Layout.fillWidth: true
             enabled: false
-            buttonText: `${NotificationManager.list.length} notifications`
+            buttonText: qsTr("%1 notifications").arg(NotificationManager.list.length)
         }
 
         NotificationStatusButton {

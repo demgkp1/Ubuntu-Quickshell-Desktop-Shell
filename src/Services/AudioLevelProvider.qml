@@ -1,15 +1,6 @@
 import QtQuick
-
-Item {
-    id: root
-
-    property bool active: false
-    property string sourceNodeName: ""
-    property bool captureSink: false
-    property string errorString: ""
-    property real level: 0.0
-    property var values: []
-    property bool available: true
-    property real visualAmplitude: 0.0
-    property double visualTimestampMs: 0
+import Clavis.Cava as Native
+Native.AudioLevelProvider {
+    readonly property real level: rms
+    readonly property var values: [rms, peak]
 }

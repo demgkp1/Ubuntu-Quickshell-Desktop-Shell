@@ -155,6 +155,7 @@ Item {
         width: parent.width
         anchors.left: parent.left
         anchors.leftMargin: root.xOffset
+        clip: true
         radius: Appearance.rounding.small
         color: (root.expanded && !root.onlyNotification) ? (root.isCriticalUrgency(root.notificationUrgency)
                                                             ? Appearance.mix(
@@ -166,11 +167,23 @@ Item {
         implicitHeight: root.expanded ? contentColumn.implicitHeight + root.padding * 2 : root.onlyNotification
                                         ? notificationBodyText.implicitHeight : summaryRow.implicitHeight
 
+        Behavior on color {
+            ColorAnimation {
+                duration: Appearance.animation.expressiveDefaultEffects.duration
+                easing.type: Appearance.animation.expressiveDefaultEffects.type
+                easing.bezierCurve: Appearance.animation.expressiveDefaultEffects.bezierCurve
+            }
+        }
+
         ColumnLayout {
             id: contentColumn
 
-            anchors.fill: parent
-            anchors.margins: root.expanded ? root.padding : 0
+            anchors {
+                left: parent.left
+                right: parent.right
+                top: parent.top
+                margins: root.expanded ? root.padding : 0
+            }
             spacing: 3
 
             RowLayout {
@@ -231,7 +244,7 @@ Item {
                     text: root.processedBody()
                     textFormat: Text.RichText
                     wrapMode: Text.Wrap
-                    maximumLineCount: root.onlyNotification && !root.expanded ? 1 : 2.14748e+09
+                    maximumLineCount: root.onlyNotification && !root.expanded ? 1 : undefined
                     elide: root.onlyNotification && !root.expanded ? Text.ElideRight : Text.ElideNone
                     font.family: Fonts.ui
                     font.pixelSize: root.fontSize
@@ -335,21 +348,13 @@ Item {
                     }
                 }
             }
-
-            Behavior on anchors.margins {
-                NumberAnimation {
-                    duration: Appearance.animation.expressiveDefaultEffects.duration
-                    easing.type: Appearance.animation.expressiveDefaultEffects.type
-                    easing.bezierCurve: Appearance.animation.expressiveDefaultEffects.bezierCurve
-                }
-            }
         }
 
         Behavior on anchors.leftMargin {
             enabled: !dragManager.dragging && !destroyAnimation.running
 
             NumberAnimation {
-                duration: Appearance.animation.expressiveDefaultSpatial.duration
+                duration: Appearance.animation.expressiveFastSpatial.duration
                 easing.type: Appearance.animation.expressiveFastSpatial.type
                 easing.bezierCurve: Appearance.animation.expressiveFastSpatial.bezierCurve
             }

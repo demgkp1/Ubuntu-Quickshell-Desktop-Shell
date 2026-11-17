@@ -6,6 +6,7 @@ import Quickshell.Io
 import Quickshell.Services.Mpris
 import Quickshell.Services.Pipewire
 import Quickshell.Wayland
+import Clavis.Runtime
 import qs.Services
 import qs.Common
 import qs.Widgets.common
@@ -28,6 +29,13 @@ Variants {
     property int edgeMargin: 0
     property int maxPillRadius: 24
     property bool showAttachedEdgeCurves: !detached
+
+    function placementSnapshots() {
+        const result = [];
+        for (let index = 0; index < instances.length; ++index)
+            result.push(instances[index].placementSnapshot());
+        return result;
+    }
 
     signal avatarEditRequested(var screen)
 
@@ -151,13 +159,13 @@ Variants {
         }
 
         screen: modelData || (Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null)
-        property int x: screen && screen.geometry ? screen.geometry.x : (screen ? screen.x : 0)
-        property int y: screen && screen.geometry ? screen.geometry.y : (screen ? screen.y : 0)
-        implicitWidth: screen && screen.geometry ? screen.geometry.width : (screen ? screen.width : 2048)
-        implicitHeight: screen && screen.geometry ? screen.geometry.height : (screen ? screen.height : 1152)
+        implicitWidth: screen ? screen.width : 0
+        implicitHeight: screen ? screen.height : 0
         color: "transparent"
         visible: !WidgetState.sessionLocked
-        exclusiveZone: -1
+        // An overlay and the bar share a physical screen origin. Normal mode
+        // on X11 would shift this entire canvas below the bar's reservation.
+        exclusionMode: ExclusionMode.Ignore
         // WlrLayershell.namespace: "clavis-shell-keystone"
         // WlrLayershell.layer: WlrLayer.Top
         // WlrLayershell.exclusionMode: ExclusionMode.Ignore
@@ -174,11 +182,20 @@ Variants {
         }
 
         // The interactive surface spans the screen for expansion and animations.
-        // Reserve only the resting island thickness on a separately edge-anchored
-        // placeholder (Wayland layer-shell reservation converted to Item on XCB)
-        Item {
+        // EWMH combines same-edge struts by max, not by stacking them. Only
+        // reserve the resting island, never its expanded full-screen canvas.
+        PanelReservation {
             id: reservation
-            visible: false
+            target: keystoneWindow.contentItem
+            placement: "screen"
+            edge: keystoneWindow.edge
+            thickness: PersonalizationConfig.keystoneOverlay ? 0 : styleSurface.edgeMargin
+                + (styleSurface.elongated && longFrame.item ? longFrame.item.thickness
+                   : keystoneWindow.horizontalEdge ? horizontalLayout.collapsedHeight : verticalLayout.collapsedWidth)
+        }
+
+        function placementSnapshot() {
+            return Object.assign({role: "keystone", edgeMargin: styleSurface.edgeMargin}, reservation.inspect(root));
         }
 
         Item {
@@ -861,6 +878,12 @@ Variants {
                 }
 
                 function triggerSliderOSD(mode) {
+                    // Hardware discovery also emits change signals on failure.
+                    // Do not replace the resting clock with a fabricated 0% OSD.
+                    if ((mode === "brightness" && !Brightness.available)
+                            || (mode === "volume" && !root.audioNode)
+                            || (mode === "mic" && !root.sourceAudioNode))
+                        return;
                     if (root.contentPresentationActive || root.showHub || root.showTools || root.expanded
                             || root.showLyrics)
                         return;

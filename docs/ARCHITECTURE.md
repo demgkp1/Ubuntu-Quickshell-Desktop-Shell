@@ -1,3 +1,5 @@
+> **2026-11-16 更新：** 下文包含旧 Ubuntu 24.04/纯 QML 移植的历史描述，不代表当前实现。当前目标为 Ubuntu 26.04 / GNOME 50 Wayland，依赖真实原生插件；启动不再隐藏 GNOME UI 或全局终止 Quickshell。请以根目录 README 和当前脚本为准。
+
 # Ubuntu Quickshell 桌面移植系统权威架构规范 V2
 *(Canonical Architecture V2 for Ubuntu Quickshell Desktop Shell)*
 

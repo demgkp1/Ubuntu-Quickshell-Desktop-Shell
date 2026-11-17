@@ -139,18 +139,19 @@ StyledFlickable {
                         }
 
                         Text {
-                            text: qsTr("Live Bar Preview (所见即所得实时预览)")
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            text: qsTr("Live bar preview")
                             color: Appearance.colors.colOnSurface
                             font.family: Fonts.ui
                             font.pixelSize: Typography.titleSmall.pixelSize
                             font.weight: Font.DemiBold
+                            elide: Text.ElideRight
                         }
-
-                        Item { Layout.fillWidth: true }
 
                         ActionButton {
                             iconName: "restart_alt"
-                            text: qsTr("Reset Layout (恢复默认布局)")
+                            text: qsTr("Reset layout")
                             onClicked: PersonalizationConfig.resetBarLayout()
                         }
                     }
@@ -166,6 +167,8 @@ StyledFlickable {
                         clip: true
 
                         RowLayout {
+                            id: simBarRow
+
                             anchors.fill: parent
                             anchors.leftMargin: Metrics.spacingM
                             anchors.rightMargin: Metrics.spacingM
@@ -173,31 +176,51 @@ StyledFlickable {
 
                             // Left components pills
                             RowLayout {
+                                Layout.minimumWidth: 0
+                                Layout.maximumWidth: Math.max(0, Math.floor((simBarRow.width - centerClockPill.width) / 2 - Metrics.spacingXS * 2))
+                                Layout.preferredWidth: Math.min(implicitWidth, Layout.maximumWidth)
                                 spacing: 6
+                                clip: true
+
                                 Repeater {
                                     model: PersonalizationConfig.barLeadingComponents
                                     delegate: Rectangle {
                                         readonly property var compInfo: PersonalizationConfig.barComponentInfo(modelData)
-                                        height: 32
-                                        width: Math.min(110, Math.max(38, previewLeftRow.implicitWidth + 14))
+                                        Layout.preferredHeight: 32
+                                        Layout.minimumWidth: 32
+                                        Layout.maximumWidth: 110
+                                        Layout.fillWidth: true
+                                        Layout.preferredWidth: Math.min(110, Math.max(38, previewLeftIcon.implicitWidth + previewLeftText.implicitWidth + 18))
                                         radius: Appearance.rounding.full
                                         color: Appearance.colors.colSecondaryContainer
+                                        clip: true
 
                                         RowLayout {
                                             id: previewLeftRow
-                                            anchors.centerIn: parent
+                                            anchors {
+                                                left: parent.left
+                                                right: parent.right
+                                                verticalCenter: parent.verticalCenter
+                                                leftMargin: 7
+                                                rightMargin: 7
+                                            }
                                             spacing: 4
                                             MaterialSymbol {
+                                                id: previewLeftIcon
                                                 text: compInfo.icon || "widgets"
                                                 iconSize: 15
                                                 color: Appearance.colors.colOnSecondaryContainer
                                             }
                                             Text {
+                                                id: previewLeftText
+                                                Layout.fillWidth: true
+                                                Layout.minimumWidth: 0
                                                 text: compInfo.label.split(" ")[0]
                                                 color: Appearance.colors.colOnSecondaryContainer
                                                 font.pixelSize: 11
                                                 font.weight: Font.Medium
                                                 elide: Text.ElideRight
+                                                maximumLineCount: 1
                                             }
                                         }
                                     }
@@ -208,8 +231,9 @@ StyledFlickable {
 
                             // Center Keystone mock
                             Rectangle {
-                                height: 32
-                                width: 84
+                                id: centerClockPill
+                                Layout.preferredHeight: 32
+                                Layout.preferredWidth: 84
                                 radius: Appearance.rounding.full
                                 color: Appearance.colors.colPrimaryContainer
 
@@ -234,31 +258,51 @@ StyledFlickable {
 
                             // Right components pills
                             RowLayout {
+                                Layout.minimumWidth: 0
+                                Layout.maximumWidth: Math.max(0, Math.floor((simBarRow.width - centerClockPill.width) / 2 - Metrics.spacingXS * 2))
+                                Layout.preferredWidth: Math.min(implicitWidth, Layout.maximumWidth)
                                 spacing: 6
+                                clip: true
+
                                 Repeater {
                                     model: PersonalizationConfig.barTrailingComponents
                                     delegate: Rectangle {
                                         readonly property var compInfo: PersonalizationConfig.barComponentInfo(modelData)
-                                        height: 32
-                                        width: Math.min(110, Math.max(38, previewRightRow.implicitWidth + 14))
+                                        Layout.preferredHeight: 32
+                                        Layout.minimumWidth: 32
+                                        Layout.maximumWidth: 110
+                                        Layout.fillWidth: true
+                                        Layout.preferredWidth: Math.min(110, Math.max(38, previewRightIcon.implicitWidth + previewRightText.implicitWidth + 18))
                                         radius: Appearance.rounding.full
                                         color: Appearance.colors.colSecondaryContainer
+                                        clip: true
 
                                         RowLayout {
                                             id: previewRightRow
-                                            anchors.centerIn: parent
+                                            anchors {
+                                                left: parent.left
+                                                right: parent.right
+                                                verticalCenter: parent.verticalCenter
+                                                leftMargin: 7
+                                                rightMargin: 7
+                                            }
                                             spacing: 4
                                             MaterialSymbol {
+                                                id: previewRightIcon
                                                 text: compInfo.icon || "widgets"
                                                 iconSize: 15
                                                 color: Appearance.colors.colOnSecondaryContainer
                                             }
                                             Text {
+                                                id: previewRightText
+                                                Layout.fillWidth: true
+                                                Layout.minimumWidth: 0
                                                 text: compInfo.label.split(" ")[0]
                                                 color: Appearance.colors.colOnSecondaryContainer
                                                 font.pixelSize: 11
                                                 font.weight: Font.Medium
                                                 elide: Text.ElideRight
+                                                maximumLineCount: 1
                                             }
                                         }
                                     }
@@ -273,9 +317,11 @@ StyledFlickable {
             SettingsSection {
                 Layout.fillWidth: true
                 flat: false
-                title: root.horizontalBar ? qsTr("Left Zone Components (状态栏左侧组件)") : qsTr("Top Zone Components (状态栏顶部组件)")
+                title: root.horizontalBar ? qsTr("Left zone components") : qsTr("Top zone components")
                 iconName: root.horizontalBar ? "align_horizontal_left" : "align_vertical_top"
-                supportingText: qsTr("已启用 %1 个组件。使用箭头排序、对侧互移或移除组件。").arg(PersonalizationConfig.barLeadingComponents.length)
+                supportingText: PersonalizationConfig.barLeadingComponents.length === 1
+                                ? qsTr("1 component enabled. Use the arrows to reorder, move across zones, or remove.")
+                                : qsTr("%1 components enabled. Use the arrows to reorder, move across zones, or remove.").arg(PersonalizationConfig.barLeadingComponents.length)
 
                 ColumnLayout {
                     Layout.fillWidth: true
@@ -339,31 +385,47 @@ StyledFlickable {
                                 // Title & Description
                                 ColumnLayout {
                                     Layout.fillWidth: true
+                                    Layout.minimumWidth: 0
                                     spacing: 3
 
                                     RowLayout {
+                                        Layout.fillWidth: true
                                         spacing: Metrics.spacingS
                                         Text {
+                                            Layout.fillWidth: true
+                                            Layout.minimumWidth: 0
                                             text: leadingItemCard.info.label
                                             font.pixelSize: 14
                                             font.weight: Font.DemiBold
                                             color: Appearance.colors.colOnSurface
+                                            elide: Text.ElideRight
+                                            maximumLineCount: 1
                                         }
 
                                         Rectangle {
                                             visible: leadingItemCard.info.tag.length > 0
-                                            height: 20
-                                            width: tagText.implicitWidth + 12
+                                            Layout.preferredHeight: 20
+                                            Layout.preferredWidth: Math.min(100, tagText.implicitWidth + 12)
+                                            Layout.maximumWidth: 100
                                             radius: 4
                                             color: Appearance.colors.colSurfaceContainerHigh
+                                            clip: true
 
                                             Text {
                                                 id: tagText
-                                                anchors.centerIn: parent
+                                                anchors {
+                                                    left: parent.left
+                                                    right: parent.right
+                                                    verticalCenter: parent.verticalCenter
+                                                    leftMargin: 6
+                                                    rightMargin: 6
+                                                }
+                                                horizontalAlignment: Text.AlignHCenter
                                                 text: leadingItemCard.info.tag
                                                 font.pixelSize: 10
                                                 font.weight: Font.Medium
                                                 color: Appearance.colors.colOnSurfaceVariant
+                                                elide: Text.ElideRight
                                             }
                                         }
                                     }
@@ -383,7 +445,7 @@ StyledFlickable {
 
                                     IconButton {
                                         iconName: root.horizontalBar ? "arrow_back" : "arrow_upward"
-                                        tooltipText: root.horizontalBar ? qsTr("Move left (左移)") : qsTr("Move up (上移)")
+                                        tooltipText: root.horizontalBar ? qsTr("Move left") : qsTr("Move up")
                                         enabled: index > 0
                                         variant: "standard"
                                         onClicked: PersonalizationConfig.moveBarComponent(modelData, "leading", index - 1)
@@ -391,7 +453,7 @@ StyledFlickable {
 
                                     IconButton {
                                         iconName: root.horizontalBar ? "arrow_forward" : "arrow_downward"
-                                        tooltipText: root.horizontalBar ? qsTr("Move right (右移)") : qsTr("Move down (下移)")
+                                        tooltipText: root.horizontalBar ? qsTr("Move right") : qsTr("Move down")
                                         enabled: index < PersonalizationConfig.barLeadingComponents.length - 1
                                         variant: "standard"
                                         onClicked: PersonalizationConfig.moveBarComponent(modelData, "leading", index + 1)
@@ -399,14 +461,14 @@ StyledFlickable {
 
                                     IconButton {
                                         iconName: root.horizontalBar ? "swap_horiz" : "swap_vert"
-                                        tooltipText: qsTr("Move to right zone (移至对侧)")
+                                        tooltipText: root.horizontalBar ? qsTr("Move to right zone") : qsTr("Move to bottom zone")
                                         variant: "tonal"
                                         onClicked: PersonalizationConfig.moveBarComponent(modelData, "trailing", PersonalizationConfig.barTrailingComponents.length)
                                     }
 
                                     IconButton {
                                         iconName: "close"
-                                        tooltipText: qsTr("Remove (移除)")
+                                        tooltipText: qsTr("Remove")
                                         variant: "standard"
                                         onClicked: PersonalizationConfig.removeBarComponent(modelData)
                                     }
@@ -425,7 +487,10 @@ StyledFlickable {
 
                         Text {
                             anchors.centerIn: parent
-                            text: qsTr("暂无左侧组件，可点击下方列表添加")
+                            width: Math.max(0, parent.width - Metrics.spacingM * 2)
+                            horizontalAlignment: Text.AlignHCenter
+                            elide: Text.ElideRight
+                            text: root.horizontalBar ? qsTr("No left-zone components. Select an item below to add one.") : qsTr("No top-zone components. Select an item below to add one.")
                             color: Appearance.colors.colOnSurfaceVariant
                             font.pixelSize: 12
                         }
@@ -442,7 +507,9 @@ StyledFlickable {
                         visible: available.length > 0
 
                         Text {
-                            text: qsTr("+ 添加组件到左侧 (点击下方组件快速添加):")
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                            text: root.horizontalBar ? qsTr("Add component to left zone:") : qsTr("Add component to top zone:")
                             font.pixelSize: 12
                             font.weight: Font.Medium
                             color: Appearance.colors.colOnSurfaceVariant
@@ -459,7 +526,7 @@ StyledFlickable {
                                     readonly property var addInfo: PersonalizationConfig.barComponentInfo(modelData)
                                     readonly property bool isInTrailing: PersonalizationConfig.barTrailingComponents.indexOf(modelData) !== -1
                                     iconName: addInfo.icon || "widgets"
-                                    text: isInTrailing ? qsTr("%1 (从右侧移入)").arg(addInfo.label) : qsTr("+ %1").arg(addInfo.label)
+                                    text: isInTrailing ? (root.horizontalBar ? qsTr("%1 (from right)").arg(addInfo.label) : qsTr("%1 (from bottom)").arg(addInfo.label)) : qsTr("+ %1").arg(addInfo.label)
                                     onClicked: PersonalizationConfig.moveBarComponent(modelData, "leading", PersonalizationConfig.barLeadingComponents.length)
                                 }
                             }
@@ -472,9 +539,11 @@ StyledFlickable {
             SettingsSection {
                 Layout.fillWidth: true
                 flat: false
-                title: root.horizontalBar ? qsTr("Right Zone Components (状态栏右侧组件)") : qsTr("Bottom Zone Components (状态栏底部组件)")
+                title: root.horizontalBar ? qsTr("Right zone components") : qsTr("Bottom zone components")
                 iconName: root.horizontalBar ? "align_horizontal_right" : "align_vertical_bottom"
-                supportingText: qsTr("已启用 %1 个组件。使用箭头排序、对侧互移或移除组件。").arg(PersonalizationConfig.barTrailingComponents.length)
+                supportingText: PersonalizationConfig.barTrailingComponents.length === 1
+                                ? qsTr("1 component enabled. Use the arrows to reorder, move across zones, or remove.")
+                                : qsTr("%1 components enabled. Use the arrows to reorder, move across zones, or remove.").arg(PersonalizationConfig.barTrailingComponents.length)
 
                 ColumnLayout {
                     Layout.fillWidth: true
@@ -538,31 +607,47 @@ StyledFlickable {
                                 // Title & Description
                                 ColumnLayout {
                                     Layout.fillWidth: true
+                                    Layout.minimumWidth: 0
                                     spacing: 3
 
                                     RowLayout {
+                                        Layout.fillWidth: true
                                         spacing: Metrics.spacingS
                                         Text {
+                                            Layout.fillWidth: true
+                                            Layout.minimumWidth: 0
                                             text: trailingItemCard.info.label
                                             font.pixelSize: 14
                                             font.weight: Font.DemiBold
                                             color: Appearance.colors.colOnSurface
+                                            elide: Text.ElideRight
+                                            maximumLineCount: 1
                                         }
 
                                         Rectangle {
                                             visible: trailingItemCard.info.tag.length > 0
-                                            height: 20
-                                            width: tagTrailingText.implicitWidth + 12
+                                            Layout.preferredHeight: 20
+                                            Layout.preferredWidth: Math.min(100, tagTrailingText.implicitWidth + 12)
+                                            Layout.maximumWidth: 100
                                             radius: 4
                                             color: Appearance.colors.colSurfaceContainerHigh
+                                            clip: true
 
                                             Text {
                                                 id: tagTrailingText
-                                                anchors.centerIn: parent
+                                                anchors {
+                                                    left: parent.left
+                                                    right: parent.right
+                                                    verticalCenter: parent.verticalCenter
+                                                    leftMargin: 6
+                                                    rightMargin: 6
+                                                }
+                                                horizontalAlignment: Text.AlignHCenter
                                                 text: trailingItemCard.info.tag
                                                 font.pixelSize: 10
                                                 font.weight: Font.Medium
                                                 color: Appearance.colors.colOnSurfaceVariant
+                                                elide: Text.ElideRight
                                             }
                                         }
                                     }
@@ -582,7 +667,7 @@ StyledFlickable {
 
                                     IconButton {
                                         iconName: root.horizontalBar ? "arrow_back" : "arrow_upward"
-                                        tooltipText: root.horizontalBar ? qsTr("Move left (左移)") : qsTr("Move up (上移)")
+                                        tooltipText: root.horizontalBar ? qsTr("Move left") : qsTr("Move up")
                                         enabled: index > 0
                                         variant: "standard"
                                         onClicked: PersonalizationConfig.moveBarComponent(modelData, "trailing", index - 1)
@@ -590,7 +675,7 @@ StyledFlickable {
 
                                     IconButton {
                                         iconName: root.horizontalBar ? "arrow_forward" : "arrow_downward"
-                                        tooltipText: root.horizontalBar ? qsTr("Move right (右移)") : qsTr("Move down (下移)")
+                                        tooltipText: root.horizontalBar ? qsTr("Move right") : qsTr("Move down")
                                         enabled: index < PersonalizationConfig.barTrailingComponents.length - 1
                                         variant: "standard"
                                         onClicked: PersonalizationConfig.moveBarComponent(modelData, "trailing", index + 1)
@@ -598,14 +683,14 @@ StyledFlickable {
 
                                     IconButton {
                                         iconName: root.horizontalBar ? "swap_horiz" : "swap_vert"
-                                        tooltipText: qsTr("Move to left zone (移至对侧)")
+                                        tooltipText: root.horizontalBar ? qsTr("Move to left zone") : qsTr("Move to top zone")
                                         variant: "tonal"
                                         onClicked: PersonalizationConfig.moveBarComponent(modelData, "leading", PersonalizationConfig.barLeadingComponents.length)
                                     }
 
                                     IconButton {
                                         iconName: "close"
-                                        tooltipText: qsTr("Remove (移除)")
+                                        tooltipText: qsTr("Remove")
                                         variant: "standard"
                                         onClicked: PersonalizationConfig.removeBarComponent(modelData)
                                     }
@@ -624,7 +709,10 @@ StyledFlickable {
 
                         Text {
                             anchors.centerIn: parent
-                            text: qsTr("暂无右侧组件，可点击下方列表添加")
+                            width: Math.max(0, parent.width - Metrics.spacingM * 2)
+                            horizontalAlignment: Text.AlignHCenter
+                            elide: Text.ElideRight
+                            text: root.horizontalBar ? qsTr("No right-zone components. Select an item below to add one.") : qsTr("No bottom-zone components. Select an item below to add one.")
                             color: Appearance.colors.colOnSurfaceVariant
                             font.pixelSize: 12
                         }
@@ -641,7 +729,9 @@ StyledFlickable {
                         visible: available.length > 0
 
                         Text {
-                            text: qsTr("+ 添加组件到右侧 (点击下方组件快速添加):")
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                            text: root.horizontalBar ? qsTr("Add component to right zone:") : qsTr("Add component to bottom zone:")
                             font.pixelSize: 12
                             font.weight: Font.Medium
                             color: Appearance.colors.colOnSurfaceVariant
@@ -658,7 +748,7 @@ StyledFlickable {
                                     readonly property var addInfo: PersonalizationConfig.barComponentInfo(modelData)
                                     readonly property bool isInLeading: PersonalizationConfig.barLeadingComponents.indexOf(modelData) !== -1
                                     iconName: addInfo.icon || "widgets"
-                                    text: isInLeading ? qsTr("%1 (从左侧移入)").arg(addInfo.label) : qsTr("+ %1").arg(addInfo.label)
+                                    text: isInLeading ? (root.horizontalBar ? qsTr("%1 (from left)").arg(addInfo.label) : qsTr("%1 (from top)").arg(addInfo.label)) : qsTr("+ %1").arg(addInfo.label)
                                     onClicked: PersonalizationConfig.moveBarComponent(modelData, "trailing", PersonalizationConfig.barTrailingComponents.length)
                                 }
                             }
@@ -671,9 +761,9 @@ StyledFlickable {
             SettingsSection {
                 Layout.fillWidth: true
                 flat: false
-                title: qsTr("Quick Settings Drawer Widgets (快捷设置抽屉挂件)")
+                title: qsTr("Quick settings drawer widgets")
                 iconName: "tune"
-                supportingText: qsTr("自定义控制中心快捷设置抽屉面板中的小部件及其排列显示。")
+                supportingText: qsTr("Customize which widgets appear in the Quick Settings drawer and their display order.")
 
                 ColumnLayout {
                     Layout.fillWidth: true
@@ -684,7 +774,7 @@ StyledFlickable {
                         Item { Layout.fillWidth: true }
                         ActionButton {
                             iconName: "restart_alt"
-                            text: qsTr("Reset Widgets (恢复挂件默认)")
+                            text: qsTr("Reset widgets")
                             onClicked: PersonalizationConfig.resetQuickSettingsComponents()
                         }
                     }
@@ -730,13 +820,18 @@ StyledFlickable {
 
                                 ColumnLayout {
                                     Layout.fillWidth: true
+                                    Layout.minimumWidth: 0
                                     spacing: 3
 
                                     Text {
+                                        Layout.fillWidth: true
+                                        Layout.minimumWidth: 0
                                         text: qsWidgetCard.wInfo.label
                                         font.pixelSize: 14
                                         font.weight: Font.DemiBold
                                         color: Appearance.colors.colOnSurface
+                                        elide: Text.ElideRight
+                                        maximumLineCount: 1
                                     }
 
                                     Text {
@@ -754,7 +849,7 @@ StyledFlickable {
 
                                     IconButton {
                                         iconName: "arrow_upward"
-                                        tooltipText: qsTr("Move earlier (前移)")
+                                        tooltipText: qsTr("Move earlier")
                                         enabled: qsWidgetCard.orderIndex > 0
                                         variant: "standard"
                                         onClicked: PersonalizationConfig.moveQuickSettingsComponent(modelData, qsWidgetCard.orderIndex - 1)
@@ -762,7 +857,7 @@ StyledFlickable {
 
                                     IconButton {
                                         iconName: "arrow_downward"
-                                        tooltipText: qsTr("Move later (后移)")
+                                        tooltipText: qsTr("Move later")
                                         enabled: qsWidgetCard.orderIndex < PersonalizationConfig.quickSettingsComponents.length - 1
                                         variant: "standard"
                                         onClicked: PersonalizationConfig.moveQuickSettingsComponent(modelData, qsWidgetCard.orderIndex + 1)

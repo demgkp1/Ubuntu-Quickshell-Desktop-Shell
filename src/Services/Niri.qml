@@ -1,97 +1,76 @@
 pragma Singleton
-
 import QtQuick
 import Quickshell
 import qs.Services
 
-QtObject {
+// Dual-backend compositor facade delegating to Niri IPC or GNOME bridge via CompositorBackend.
+Singleton {
     id: root
 
-    readonly property bool available: true
-    readonly property bool connected: true
-    readonly property bool supportsMinimize: true
-    readonly property bool supportsMinimizeAnimation: true
-    readonly property var minimizeEffects: ["scale", "genie"]
-    readonly property var workspaces: [
-        { id: 1, name: "1", active: true },
-        { id: 2, name: "2", active: false },
-        { id: 3, name: "3", active: false },
-        { id: 4, name: "4", active: false }
-    ]
-    readonly property var windows: typeof X11WindowService !== "undefined" ? X11WindowService.windows : []
-    property var outputs: root.outputSnapshot()
-    readonly property var focusedWindow: root.windows.length > 0 ? root.windows[0] : null
-    property int connectionGeneration: 1
+    readonly property string backendName: CompositorBackend.name
+    readonly property bool available: CompositorBackend.available
+    readonly property bool connected: CompositorBackend.connected
+    readonly property string lastError: CompositorBackend.lastError
+    readonly property bool supportsMinimize: CompositorBackend.supportsMinimize
+    readonly property bool supportsMinimizeAnimation: CompositorBackend.supportsMinimizeAnimation
+    readonly property bool supportsWindowOpacity: CompositorBackend.supportsWindowOpacity
+    readonly property var minimizeEffects: CompositorBackend.minimizeEffects
+    readonly property var workspaces: CompositorBackend.workspaces
+    readonly property var windows: CompositorBackend.windows
+    readonly property var outputs: CompositorBackend.outputs
+    readonly property var focusedWindow: CompositorBackend.focusedWindow
+    readonly property var focusedWorkspace: CompositorBackend.focusedWorkspace
+    readonly property string currentOutput: CompositorBackend.currentOutput
+    readonly property int connectionGeneration: CompositorBackend.connectionGeneration
+    readonly property bool inOverview: CompositorBackend.inOverview
+    readonly property var keyboardLayoutNames: CompositorBackend.keyboardLayoutNames
+    readonly property string currentKeyboardLayoutName: CompositorBackend.currentKeyboardLayoutName
     property var floatingParallaxOffsets: ({})
 
-    function searchWindows(query) {
-        if (typeof X11WindowService !== "undefined")
-            return X11WindowService.searchWindows(query);
-        return [];
+    signal capabilitiesChanged()
+    signal errorChanged()
+    signal overviewChanged()
+    signal keyboardLayoutChanged()
+    signal outputRequestFinished(string requestId, bool success, string error)
+
+    Connections {
+        target: CompositorBackend
+        function onCapabilitiesChanged() { root.capabilitiesChanged(); }
+        function onErrorChanged() { root.errorChanged(); }
+        function onOverviewChanged() { root.overviewChanged(); }
+        function onKeyboardLayoutChanged() { root.keyboardLayoutChanged(); }
+        function onOutputRequestFinished(requestId, success, error) {
+            root.outputRequestFinished(requestId, success, error);
+        }
     }
 
-    function windowById(id) {
-        if (typeof X11WindowService !== "undefined")
-            return X11WindowService.windowById(id);
-        return null;
-    }
-
-    function workspacesForOutput(screenName) {
-        return root.workspaces.map(ws => Object.assign({}, ws, { output: screenName }));
-    }
-
-    function activeWorkspaceForOutput(screenName) {
-        const list = root.workspacesForOutput(screenName);
-        return list.length > 0 ? list[0] : null;
-    }
-
-    function windowsForWorkspace(workspaceId) {
-        return root.windows;
-    }
-
-    function focusWindow(id) {
-        if (typeof X11WindowService !== "undefined")
-            return X11WindowService.activateWindow(id);
-        return false;
-    }
-
-    function minimizeWindow(id) {
-        if (typeof X11WindowService !== "undefined")
-            return X11WindowService.minimizeWindow(id);
-        return false;
-    }
-
-    function restoreWindow(id, outputName) {
-        if (typeof X11WindowService !== "undefined")
-            return X11WindowService.activateWindow(id);
-        return false;
-    }
-
-    function closeWindow(id) {
-        if (typeof X11WindowService !== "undefined")
-            return X11WindowService.closeWindow(id);
-        return false;
-    }
-
+    function outputSnapshot() { return CompositorBackend.outputSnapshot(); }
+    function searchWindows(query) { return CompositorBackend.searchWindows(query); }
+    function windowById(id) { return CompositorBackend.windowById(id); }
+    function workspaceById(id) { return CompositorBackend.workspaceById(id); }
+    function workspacesForOutput(name) { return CompositorBackend.workspacesForOutput(name); }
+    function activeWorkspaceForOutput(name) { return CompositorBackend.activeWorkspaceForOutput(name); }
+    function windowsForWorkspace(id) { return CompositorBackend.windowsForWorkspace(id); }
+    function windowsForOutput(name) { return CompositorBackend.windowsForOutput(name); }
+    function workspaceIcons(workspaceId, groupApps) { return CompositorBackend.workspaceIcons(workspaceId, groupApps); }
+    function focusWindow(id) { return CompositorBackend.focusWindow(id); }
+    function minimizeWindow(id) { return CompositorBackend.minimizeWindow(id); }
+    function restoreWindow(id, output) { return CompositorBackend.restoreWindow(id, output); }
+    function closeWindow(id) { return CompositorBackend.closeWindow(id); }
+    function closeFocusedWindow() { return CompositorBackend.closeFocusedWindow(); }
+    function focusWorkspace(id) { return CompositorBackend.focusWorkspace(id); }
+    function focusWorkspaceById(id) { return CompositorBackend.focusWorkspaceById(id); }
+    function focusWorkspaceByIndex(index) { return CompositorBackend.focusWorkspaceByIndex(index); }
+    function focusWorkspaceByName(name) { return CompositorBackend.focusWorkspaceByName(name); }
+    function toggleOverview() { return CompositorBackend.toggleOverview(); }
+    function configureOutput(requestId, name, actionPayload) { return CompositorBackend.configureOutput(requestId, name, actionPayload); }
     function setFloatingParallaxOffsets(offsets) {
-        root.floatingParallaxOffsets = offsets || {};
-        return true;
+        root.floatingParallaxOffsets = offsets || ({});
+        return CompositorBackend.setFloatingParallaxOffsets(offsets);
     }
-
-    function outputSnapshot() {
-        if (!Quickshell.screens)
-            return [];
-        return Quickshell.screens.map(s => ({
-            name: s.name || "default",
-            width: s.geometry ? s.geometry.width : (s.width || 1920),
-            height: s.geometry ? s.geometry.height : (s.height || 1080),
-            scale: 1.0
-        }));
-    }
-
-    function refreshOutputs() {
-        root.outputs = root.outputSnapshot();
-        root.connectionGeneration += 1;
-        return true;
-    }
+    function refreshOutputs() { return CompositorBackend.refreshOutputs(); }
+    function powerOffMonitors() { return CompositorBackend.powerOffMonitors(); }
+    function powerOnMonitors() { return CompositorBackend.powerOnMonitors(); }
+    function cycleKeyboardLayout() { return CompositorBackend.cycleKeyboardLayout(); }
+    function doScreenTransition(delayMs) { return CompositorBackend.doScreenTransition(delayMs); }
 }

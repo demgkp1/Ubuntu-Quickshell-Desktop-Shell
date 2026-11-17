@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import QtQuick.Window
 import Quickshell
 import Quickshell.Wayland
+import Clavis.Runtime
 import qs.Common
 import qs.Services
 import qs.Components
@@ -149,8 +150,7 @@ FloatingWindow {
     Material.accent: Appearance.colors.colPrimary
     onVisibleChanged: {
         if (root.visible) {
-            if (typeof X11WindowService !== "undefined")
-                X11WindowService.stripDecorations("clavis-control-center");
+            Qt.callLater(() => WindowDecoration.makeFrameless(root.contentItem));
         } else if (!root.visible && root._wasShown) {
             ControlCenterService.cancelSearch();
             root.closeChildWindows();
@@ -240,40 +240,25 @@ FloatingWindow {
                     font.weight: Font.DemiBold
                 }
 
-                Rectangle {
+                IconButton {
                     id: closeButton
 
+                    z: 1
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    implicitWidth: 35
-                    implicitHeight: 35
-                    radius: Appearance.rounding.full
-                    color: closeMouse.pressed ? Appearance.colors.colLayer1Active : closeMouse.containsMouse
-                                                ? Appearance.colors.colLayer1Hover : "transparent"
-
-                    MaterialSymbol {
-                        anchors.centerIn: parent
-                        text: "close"
-                        iconSize: 20
-                        color: Appearance.colors.colOnLayer1
-                    }
-
-                    MouseArea {
-                        id: closeMouse
-
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.hideWindow()
-                    }
-
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: Appearance.animation.expressiveEffects.duration
-                            easing.type: Appearance.animation.expressiveEffects.type
-                            easing.bezierCurve: Appearance.animation.expressiveEffects.bezierCurve
-                        }
-                    }
+                    controlSize: 35
+                    iconName: "close"
+                    iconSize: 20
+                    iconColor: Appearance.colors.colOnLayer1
+                    normalHoverStateLayerColor: Appearance.colors.colLayer1Hover
+                    normalPressedStateLayerColor: Appearance.colors.colLayer1Active
+                    accessibleName: qsTr("Close")
+                    tooltipText: qsTr("Close")
+                    activeFocusOnTab: true
+                    KeyNavigation.down: configButton
+                    Keys.onReturnPressed: root.hideWindow()
+                    Keys.onEnterPressed: root.hideWindow()
+                    onClicked: root.hideWindow()
                 }
 
                 DragHandler {
@@ -364,7 +349,7 @@ FloatingWindow {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     radius: Math.max(0, Appearance.rounding.large - root.contentPadding)
-                    color: root.currentPage === 0 ? "transparent" : Appearance.m3colors.m3surfaceContainerLow
+                    color: root.currentPage === 0 ? "transparent" : BlurService.backgroundColor(Appearance.m3colors.m3surfaceContainerLow)
                     clip: true
 
                     InlineStatusBanner {

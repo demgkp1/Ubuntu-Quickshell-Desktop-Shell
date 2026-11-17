@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Clavis.Runtime
 import qs.Common
 import qs.Services
 
@@ -15,19 +16,14 @@ PanelWindow {
     readonly property bool isTop: corner === "top-left" || corner === "top-right"
     readonly property bool isLeft: corner === "top-left" || corner === "bottom-left"
     readonly property int cornerSize: Metrics.hotCornerSize
-    readonly property int screenX: targetScreen && targetScreen.geometry ? targetScreen.geometry.x : 0
-    readonly property int screenY: targetScreen && targetScreen.geometry ? targetScreen.geometry.y : 0
-    readonly property int screenWidth: targetScreen && targetScreen.geometry ? targetScreen.geometry.width : (targetScreen ? targetScreen.width : 1920)
-    readonly property int screenHeight: targetScreen && targetScreen.geometry ? targetScreen.geometry.height : (targetScreen ? targetScreen.height : 1080)
 
     screen: targetScreen
-    property int x: isLeft ? screenX : (screenX + screenWidth - cornerSize)
-    property int y: isTop ? screenY : (screenY + screenHeight - cornerSize)
     implicitWidth: cornerSize
     implicitHeight: cornerSize
     visible: true
     color: "transparent"
-    exclusiveZone: 0
+    exclusionMode: ExclusionMode.Ignore
+    PanelReservation { target: root.contentItem; placement: root.corner }
 
     anchors {
         top: root.isTop

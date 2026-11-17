@@ -2,17 +2,18 @@ pragma Singleton
 
 import QtQuick
 import Quickshell
+import qs.Services
 
 Singleton {
     id: root
 
-    property bool ready: true
-    property bool available: true
+    readonly property bool ready: available
+    readonly property bool available: CompositorBackend.connected && !!CompositorBackend.capabilities.gamma
     property real dimming: 1.0
     readonly property real dimmingLowerLimit: 0.2
     readonly property real gamma: 1.0
     readonly property real contrast: 1.0
-    property string error: ""
+    property string error: qsTr("GNOME owns night light. Custom gamma, contrast, dimming and Clavis location scheduling are unavailable.")
     property bool locating: false
     property string locationError: ""
     property string scheduleWarning: ""
@@ -33,21 +34,12 @@ Singleton {
         next: 0
     })
 
-    function setDimming(v) {
-        dimming = Math.max(0, Math.min(1, v));
-        const next = Object.assign({}, preferences, { dimming: dimming });
-        preferences = next;
+    function unsupported() {
+        error = qsTr("Use GNOME Settings → Displays for native night light; Clavis gamma controls are unavailable on this backend.");
+        return root.available;
     }
-
-    function setPreference(key, value) {
-        if (key === "dimming") {
-            setDimming(value);
-            return;
-        }
-        const next = Object.assign({}, preferences, { [key]: value });
-        preferences = next;
-    }
-
-    function locate() {}
-    function useWeatherLocation() {}
+    function setDimming(value) { return unsupported(); }
+    function setPreference(key, value) { return unsupported(); }
+    function locate() { return unsupported(); }
+    function useWeatherLocation() { return unsupported(); }
 }

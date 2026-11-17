@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import Clavis.Runtime
 import qs.Common
 import qs.Services
 import qs.Widgets.common
@@ -209,13 +210,12 @@ Variants {
         }
 
         screen: modelData || (Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null)
-        property int x: modelData && modelData.geometry ? modelData.geometry.x : 0
-        property int y: modelData && modelData.geometry ? modelData.geometry.y : 0
-        implicitWidth: modelData && modelData.geometry ? modelData.geometry.width : 1920
-        implicitHeight: modelData && modelData.geometry ? modelData.geometry.height : 1080
+        implicitWidth: screen ? screen.width : 0
+        implicitHeight: screen ? screen.height : 0
         visible: true
         color: "transparent"
-        exclusiveZone: 0
+        exclusionMode: ExclusionMode.Ignore
+        PanelReservation { target: window.contentItem; placement: "screen" }
         // WlrLayershell attached properties break window attachment under Mutter XCB.
         // WlrLayershell.layer: WlrLayer.Bottom
         // WlrLayershell.namespace: "clavis-desktop-cards"

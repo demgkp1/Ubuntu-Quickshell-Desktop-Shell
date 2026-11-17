@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import Clavis.Runtime
 import qs.Common
 import "../../Common/SidebarPolicy.js" as SidebarPolicy
 import qs.Modules.Sidebars.Dashboard
@@ -103,13 +104,24 @@ PanelWindow {
     readonly property var retainedScreen: Brightness.getScreenByName(retainedScreenName)
 
     screen: retainedScreen || fallbackScreen
-    property int x: root.screen && root.screen.geometry ? root.screen.geometry.x : (root.screen ? root.screen.x : 0)
-    property int y: root.screen && root.screen.geometry ? root.screen.geometry.y : (root.screen ? root.screen.y : 0)
-    implicitWidth: root.screen && root.screen.geometry ? root.screen.geometry.width : (root.screen ? root.screen.width : 1920)
-    implicitHeight: root.screen && root.screen.geometry ? root.screen.geometry.height : (root.screen ? root.screen.height : 1080)
+    implicitWidth: root.screen ? root.screen.width : 0
+    implicitHeight: root.screen ? root.screen.height : 0
     onScreenChanged: WidgetState.sidebarScreenName = screen ? screen.name : ""
     visible: retainedScreen !== null || fallbackScreen !== null
     color: "transparent"
+    // Reveal from the physical screen edge, including the bar/dock region,
+    // rather than shifting/shrinking the full-screen overlay canvas.
+    exclusionMode: ExclusionMode.Ignore
+    PanelReservation { id: reservation; target: root.contentItem; placement: "screen" }
+    function placementSnapshot() {
+        const visual = quickSettingsSidebar.panelPresented ? quickSettingsSidebar.blurBackgroundItem
+                       : dashboardSidebar.panelPresented ? dashboardSidebar.blurBackgroundItem : null;
+        return Object.assign({role: "sidebar"}, reservation.inspect(visual));
+    }
+    readonly property bool quickSettingsPresented: quickSettingsSidebar.panelPresented
+    readonly property bool dashboardPresented: dashboardSidebar.panelPresented
+    readonly property bool quickSettingsReady: quickSettingsSidebar.contentReady
+    readonly property bool dashboardReady: dashboardSidebar.contentReady
 
     anchors {
         left: true

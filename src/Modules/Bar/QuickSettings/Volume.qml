@@ -7,6 +7,8 @@ import qs.Widgets.common
 
 Item {
     id: root
+    enabled: Volume.outputAvailable
+    opacity: enabled ? 1 : 0.45
 
     property var screen: null
     property bool vertical: false
@@ -57,7 +59,7 @@ Item {
                 Text {
                     id: valueText
                     visible: root.showValue
-                    text: Math.round(Volume.sinkVolume * 100) + "%"
+                    text: Volume.outputAvailable ? Math.round(Volume.sinkVolume * 100) + "%" : "—"
                     font.family: Fonts.numeric
                     font.pixelSize: 12
                     color: Appearance.colors.colOnSurface

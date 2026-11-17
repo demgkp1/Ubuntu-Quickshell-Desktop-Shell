@@ -1,83 +1,138 @@
 import QtQuick
 import Quickshell
 import Quickshell.Wayland
+import Clavis.Runtime
 import qs.Services
 import qs.Common
 import qs.Widgets.common
 
-PanelWindow {
+Scope {
     id: root
 
+    property var screen: Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
     property string edge: PersonalizationConfig.barPosition || "left"
-    readonly property real visualThickness: Sizes.barVisualThickness
-    readonly property real outerEdgeMargin: Sizes.barOuterEdgeMargin
-    // Shadow pixels need surface space, but must not reserve desktop space.
-    readonly property real surfaceThickness: outerEdgeMargin + visualThickness + Sizes.barShadowBuffer
-    readonly property real exclusiveThickness: outerEdgeMargin + visualThickness
+    readonly property bool useWlrLayershell: CompositorBackend.name === "niri"
 
-    screen: Quickshell.screens && Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
-    property int x: root.screen && root.screen.geometry ? root.screen.geometry.x : (root.screen ? root.screen.x : 0)
-    property int y: root.screen && root.screen.geometry ? root.screen.geometry.y : (root.screen ? root.screen.y : 0)
-    implicitWidth: Sizes.barVisualThickness + Sizes.barOuterEdgeMargin + Sizes.barShadowBuffer
-    implicitHeight: root.screen && root.screen.geometry ? root.screen.geometry.height : (root.screen ? root.screen.height : 1080)
-    color: "transparent"
-    exclusiveZone: PersonalizationConfig.barOverlay ? 0 : exclusiveThickness
-    // WlrLayershell attached properties suppress X11 _NET_WM_STRUT under Mutter XCB.
-    // WlrLayershell.layer: WlrLayer.Top
-    // WlrLayershell.namespace: "clavis-shell-bar-vertical"
-    // WlrLayershell.exclusionMode: PersonalizationConfig.barOverlay ? ExclusionMode.Ignore : ExclusionMode.Normal
-
-    BarAxis {
-        id: axis
-
-        edge: root.edge
+    function placementSnapshot() {
+        const win = root.useWlrLayershell
+            ? (niriVariants.instances.length > 0 ? niriVariants.instances[0] : null)
+            : (x11Variants.instances.length > 0 ? x11Variants.instances[0] : null);
+        return win ? win.placementSnapshot() : ({role: "bar", orientation: "vertical", available: false});
     }
 
-    anchors {
-        top: true
-        bottom: true
-        left: axis.isLeft
-        right: axis.isRight
-    }
+    component BaseVerticalBarWindow: PanelWindow {
+        id: barWindow
 
-    Item {
-        id: visualBand
+        property string edge: root.edge
+        readonly property real visualThickness: Sizes.barVisualThickness
+        readonly property real outerEdgeMargin: Sizes.barOuterEdgeMargin
+        // Shadow pixels need surface space, but must not reserve desktop space.
+        readonly property real surfaceThickness: outerEdgeMargin + visualThickness + Sizes.barShadowBuffer
+        readonly property real exclusiveThickness: outerEdgeMargin + visualThickness
+        readonly property real gnomePanelOffset: 0
+        readonly property real screenX: barWindow.screen && barWindow.screen.geometry
+            ? barWindow.screen.geometry.x : (barWindow.screen ? barWindow.screen.x : 0)
+        readonly property real screenY: barWindow.screen && barWindow.screen.geometry
+            ? barWindow.screen.geometry.y : (barWindow.screen ? barWindow.screen.y : 0)
+        readonly property real screenWidth: barWindow.screen && barWindow.screen.geometry
+            ? barWindow.screen.geometry.width : (barWindow.screen ? barWindow.screen.width : 1920)
+        readonly property real screenHeight: barWindow.screen && barWindow.screen.geometry
+            ? barWindow.screen.geometry.height : (barWindow.screen ? barWindow.screen.height : 1080)
 
-        x: axis.isLeft ? root.outerEdgeMargin : Sizes.barShadowBuffer
-        y: 0
-        width: root.visualThickness
-        height: root.height
+        screen: root.screen
+        implicitWidth: Sizes.barVisualThickness + Sizes.barOuterEdgeMargin + Sizes.barShadowBuffer
+        implicitHeight: barWindow.screenHeight
+        color: "transparent"
+        exclusiveZone: PersonalizationConfig.barOverlay ? 0 : barWindow.exclusiveThickness
+        margins.top: barWindow.gnomePanelOffset
 
-        VerticalBarContent {
-            id: content
+        PanelReservation {
+            id: reservation
+            target: barWindow.contentItem
+            edge: barWindow.edge
+            thickness: PersonalizationConfig.barOverlay ? 0 : barWindow.exclusiveThickness
+        }
 
-            anchors.fill: parent
-            screen: root.screen
-            axis: axis
+        function placementSnapshot() {
+            return Object.assign({role: "bar", orientation: "vertical"}, reservation.inspect(visualBand));
+        }
+
+        BarAxis {
+            id: axis
+
+            edge: barWindow.edge
+        }
+
+        anchors {
+            top: true
+            bottom: true
+            left: axis.isLeft
+            right: axis.isRight
+        }
+
+        Item {
+            id: visualBand
+
+            x: axis.isLeft ? barWindow.outerEdgeMargin : Sizes.barShadowBuffer
+            y: 0
+            width: barWindow.visualThickness
+            height: barWindow.height
+
+            VerticalBarContent {
+                id: content
+
+                anchors.fill: parent
+                screen: barWindow.screen
+                axis: axis
+            }
+        }
+
+        CompositorBlurRegion {
+            targetWindow: barWindow
+            backgroundItem: content.backgroundItems.length > 0 ? content.backgroundItems[0] : null
+            additionalBackgroundItems: content.backgroundItems.slice(1)
+            radius: 18
+        }
+
+        mask: Region {
+            Region {
+                item: content.leadingInputRegionItem
+            }
+
+            Region {
+                item: content.trailingInputRegionItem
+            }
+
+            HotCornerExclusionRegion {
+                surfaceWidth: barWindow.width
+                surfaceHeight: barWindow.height
+                leftEdge: axis.isLeft
+                rightEdge: axis.isRight
+            }
         }
     }
 
-    CompositorBlurRegion {
-        targetWindow: root
-        backgroundItem: content.backgroundItems.length > 0 ? content.backgroundItems[0] : null
-        additionalBackgroundItems: content.backgroundItems.slice(1)
-        radius: 18
+    // Separate Variants keep WlrLayershell attached properties completely absent on GNOME/X11,
+    // preventing Mutter XCB from suppressing _NET_WM_STRUT_PARTIAL.
+    Variants {
+        id: x11Variants
+        model: !root.useWlrLayershell ? [0] : []
+
+        BaseVerticalBarWindow {
+            required property int modelData
+        }
     }
 
-    mask: Region {
-        Region {
-            item: content.leadingInputRegionItem
-        }
+    Variants {
+        id: niriVariants
+        model: root.useWlrLayershell ? [0] : []
 
-        Region {
-            item: content.trailingInputRegionItem
-        }
+        BaseVerticalBarWindow {
+            required property int modelData
 
-        HotCornerExclusionRegion {
-            surfaceWidth: root.width
-            surfaceHeight: root.height
-            leftEdge: axis.isLeft
-            rightEdge: axis.isRight
+            WlrLayershell.layer: WlrLayer.Top
+            WlrLayershell.namespace: "clavis-shell-bar-vertical"
+            WlrLayershell.exclusionMode: PersonalizationConfig.barOverlay ? ExclusionMode.Ignore : ExclusionMode.Normal
         }
     }
 }
